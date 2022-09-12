@@ -1,26 +1,9 @@
-global record CompleteExtraInfo
-  source: string
-  extra: any
-end
-
-global record CompleteItem
-  word: string
-  abbr: string|nil
-  menu: string|nil
-  info: string|nil
-  kind: string|nil
-  icase: integer|nil
-  equal: integer|nil
-  dup: integer|nil
-  empty: integer|nil
-  user_data: CompleteExtraInfo
-end
-
-global type Source = function(string, integer): {CompleteItem}, string
-global type Pipe = function(Source): Source
-global type Completor = function(string, integer): boolean
-
 global record vim
+  record o
+    lines: integer
+    columns: integer
+  end
+
   record fn
     record Tag
       name: string
@@ -35,11 +18,51 @@ global record vim
     match: function(string|{string}, string, integer, integer): integer
     mode: function(): string
     getcwd: function(): string
-    complete: function(integer, {CompleteItem})
     reverse: function<T>({T}): {T}
   end
 
   record api
+
+    record SetHlOptions
+      link: string
+      default: boolean
+      bg: string
+    end
+
+    record OpenWinOptions
+      relative: string
+      win: WinNr|nil
+      anchor: string|nil
+      width: integer
+      height: integer
+      bufpos: {integer,integer}
+      row: integer
+      col: integer
+      focusable: boolean
+      external: boolean
+      zindex: integer|nil
+      style: string|nil
+      border: string|nil
+      noautocmd: boolean
+    end
+
+    record CreateAugroupOptions
+      clear: boolean
+    end
+
+    record CreateAutocmdOptions
+      group: string|integer|nil
+      pattern: string|{string}|nil
+      buffer: BufNr|nil
+      desc: string|nil
+      callback: function()|string|nil
+      command: string|nil
+      once: boolean|nil
+      nested: boolean|nil
+    end
+
+    type BufNr = integer
+    type WinNr = integer
     nvim_feedkeys: function(string, string, boolean)
     nvim_err_writeln: function(string)
     nvim_get_current_buf: function(): integer
@@ -48,11 +71,22 @@ global record vim
     nvim_set_option: function(string, any)
     nvim_get_option: function(string): any
     nvim_get_vvar: function(string): any
-    nvim_buf_get_option: function(integer, string): any
-    nvim_buf_get_lines: function(integer, integer, integer, boolean): {string}
-    nvim_buf_set_text: function(integer, integer, integer, integer, integer, {string})
-    nvim_win_set_cursor: function(integer, {integer, integer})
-    nvim_win_get_cursor: function(integer): {integer, integer}
+
+    nvim_create_augroup: function(string, CreateAugroupOptions)
+    nvim_create_autocmd: function(string|{string}, CreateAutocmdOptions)
+
+    nvim_create_buf: function(boolean, boolean): BufNr
+    nvim_buf_get_option: function(BufNr, string): any
+    nvim_buf_get_lines: function(BufNr, integer, integer, boolean): {string}
+    nvim_buf_set_lines: function(BufNr, integer, integer, boolean, {string})
+    nvim_buf_set_text: function(BufNr, integer, integer, integer, integer, {string})
+
+    nvim_open_win: function(BufNr, boolean, OpenWinOptions): WinNr
+    nvim_win_close: function(WinNr, boolean)
+    nvim_win_set_buf: function(WinNr, BufNr)
+    nvim_win_set_option: function(WinNr, string, any)
+    nvim_win_set_cursor: function(WinNr, {integer, integer})
+    nvim_win_get_cursor: function(WinNr): {integer, integer}
   end
 
   record lsp
