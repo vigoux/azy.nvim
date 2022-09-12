@@ -63,6 +63,8 @@ global record vim
 
     type BufNr = integer
     type WinNr = integer
+    type NSId = integer
+
     nvim_feedkeys: function(string, string, boolean)
     nvim_err_writeln: function(string)
     nvim_get_current_buf: function(): integer
@@ -74,6 +76,8 @@ global record vim
 
     nvim_create_augroup: function(string, CreateAugroupOptions)
     nvim_create_autocmd: function(string|{string}, CreateAutocmdOptions)
+
+    nvim_create_namespace: function(string): NSId
 
     nvim_create_buf: function(boolean, boolean): BufNr
     nvim_buf_get_option: function(BufNr, string): any

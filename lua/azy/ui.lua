@@ -1,4 +1,5 @@
 local fzy = require('fzy-lua-native')
+local hl_ns = vim.api.nvim_create_namespace('azy')
 
 local AzyUi = {}
 
@@ -69,20 +70,23 @@ end
 
 function AzyUi._update_output_buf()
    local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
-   local result = fzy.filter(iline, AzyUi._source_lines, false)
 
-   table.sort(result, function(a, b)
-      return a[3] < b[3]
-   end)
+   if #iline > 0 then
+      local result = fzy.filter(iline, AzyUi._source_lines, false)
 
-   vim.pretty_print(result)
+      table.sort(result, function(a, b)
+         return a[3] < b[3]
+      end)
 
-   local outlines = {}
-   for _, r in ipairs(result) do
-      table.insert(outlines, r[1])
+      local outlines = {}
+      for _, r in ipairs(result) do
+         table.insert(outlines, r[1])
+      end
+
+      vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, outlines)
+   else
+      vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, AzyUi._source_lines)
    end
-
-   vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, outlines)
 end
 
 return AzyUi
