@@ -79,11 +79,20 @@ function AzyUi._update_output_buf()
     end)
 
     local outlines: {string} = {}
+    local hl_lines: {{integer}} = {}
     for _, r in ipairs(result) do
       table.insert(outlines, r[1])
+      table.insert(hl_lines, r[2])
     end
 
     vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, outlines)
+
+    for i,hls in ipairs(hl_lines) do
+      for _,hl in ipairs(hls) do
+        print(i, hl)
+        vim.api.nvim_buf_add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1, hl)
+      end
+    end
   else
     vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, AzyUi._source_lines)
   end

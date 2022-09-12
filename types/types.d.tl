@@ -84,6 +84,7 @@ global record vim
     nvim_buf_get_lines: function(BufNr, integer, integer, boolean): {string}
     nvim_buf_set_lines: function(BufNr, integer, integer, boolean, {string})
     nvim_buf_set_text: function(BufNr, integer, integer, integer, integer, {string})
+    nvim_buf_add_highlight: function(BufNr, NSId, string, integer, integer, integer)
 
     nvim_open_win: function(BufNr, boolean, OpenWinOptions): WinNr
     nvim_win_close: function(WinNr, boolean)
