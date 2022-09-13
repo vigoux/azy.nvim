@@ -59,7 +59,10 @@ local AzyUi = {}
 
 
 
+
+
 function AzyUi.create(content, callback)
+   log("Creating with", #content, "elements")
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
    AzyUi._hl_positions = {}
    AzyUi._search_result_cache = {}
@@ -120,14 +123,14 @@ function AzyUi.create(content, callback)
 
    vim.api.nvim_create_autocmd({ "BufUnload", "BufDelete", "BufWipeout", "BufLeave" }, {
       buffer = AzyUi._input_buf,
-      callback = AzyUi.close,
+      callback = AzyUi._close,
    })
 
 
    vim.keymap.set({ "n", "i" }, "<Down>", AzyUi.next, { buffer = AzyUi._input_buf })
    vim.keymap.set({ "n", "i" }, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
    vim.keymap.set({ "n", "i" }, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
-   vim.keymap.set("n", "<ESC>", AzyUi.close, { buffer = AzyUi._input_buf })
+   vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
    AzyUi._update_output_buf()
    vim.cmd.startinsert()
@@ -148,11 +151,12 @@ function AzyUi._pick_next(direction)
 end
 
 function AzyUi.confirm()
-   AzyUi.close()
+   AzyUi._close()
    local selected = vim.tbl_filter(function(e) return e.selected end, AzyUi._current_lines)[1]
    if selected then
       AzyUi._callback(selected.content)
    end
+   AzyUi._destroy()
 end
 
 function AzyUi.next()
@@ -163,7 +167,7 @@ function AzyUi.prev()
    AzyUi._pick_next(-1)
 end
 
-function AzyUi.close()
+function AzyUi._close()
    vim.cmd.stopinsert()
    if vim.api.nvim_win_is_valid(AzyUi._input_win) then
       vim.api.nvim_win_close(AzyUi._input_win, true)
@@ -171,6 +175,20 @@ function AzyUi.close()
    if vim.api.nvim_win_is_valid(AzyUi._output_win) then
       vim.api.nvim_win_close(AzyUi._output_win, true)
    end
+end
+
+function AzyUi.exit()
+   AzyUi._close()
+   AzyUi._destroy()
+end
+
+function AzyUi._destroy()
+   log("Destroying")
+   AzyUi._current_lines = {}
+   AzyUi._hl_positions = {}
+   AzyUi._search_result_cache = {}
+   AzyUi._search_text_cache = {}
+   AzyUi._source_lines = {}
 end
 
 function AzyUi._update_output_buf()
