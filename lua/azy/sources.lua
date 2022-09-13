@@ -9,6 +9,11 @@ local Sources = {FilesOptions = {}, }
 
 
 
+
+
+
+
+
 local function is_ignored(path, patterns)
    for _, p in ipairs(patterns) do
       if p:match_str(path) then
@@ -88,6 +93,21 @@ function Sources.files(paths, config)
    for p in iter_files(paths, config.show_hidden, ignored) do
       table.insert(ret, { search_text = p })
    end
+   return ret
+end
+
+function Sources.help()
+   local ret = {}
+   for _, hpath in ipairs(vim.api.nvim_get_runtime_file("doc/tags", true)) do
+      local file = io.open(hpath)
+      if file then
+         for line, _ in function() return file:read() end do
+            local tag = vim.split(line, "\t", { plain = true })[1]
+            table.insert(ret, { search_text = tag })
+         end
+      end
+   end
+
    return ret
 end
 

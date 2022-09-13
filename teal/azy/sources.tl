@@ -1,11 +1,16 @@
 local utils = require'azy.utils'
 
 local record Sources
+
+  -- Files source
   record FilesOptions
     show_hidden: boolean
     ignored_patterns: {string}
   end
   files: function({string}, FilesOptions): {AzyElement}
+
+  -- Help tags source
+  help: function(): {AzyElement}
 end
 
 -- Copied from complementree
@@ -88,6 +93,21 @@ function Sources.files(paths: {string}, config: Sources.FilesOptions): {AzyEleme
   for p in iter_files(paths, config.show_hidden, ignored) do
     table.insert(ret, { search_text = p })
   end
+  return ret
+end
+
+function Sources.help(): {AzyElement}
+  local ret = {}
+  for _, hpath in ipairs(vim.api.nvim_get_runtime_file("doc/tags", true)) do
+    local file = io.open(hpath)
+    if file then
+      for line, _ in function(): string, string return file:read() end do
+        local tag = vim.split(line, "\t", { plain = true })[1]
+        table.insert(ret, { search_text = tag })
+      end
+    end
+  end
+
   return ret
 end
 

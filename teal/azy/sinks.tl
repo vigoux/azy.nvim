@@ -6,4 +6,8 @@ function Sinks.open_file(elem: AzyElement)
   vim.cmd.edit(elem.search_text)
 end
 
+function Sinks.help_tag(elem: AzyElement)
+  vim.cmd.help(elem.search_text)
+end
+
 return Sinks

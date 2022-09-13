@@ -5,7 +5,7 @@
 Using `packer.nvim`:
 
 ```lua
-use { 'vigoux/azy.nvim', requires = { 'romgrk/fzy-lua-native', run = 'make' } }
+use { 'vigoux/azy.nvim', requires = { 'vigoux/fzy-lua-native', run = 'make' } }
 ```
 
 ## Usage
@@ -19,3 +19,4 @@ These builtin functions return a functions suitable for
 
 The available functions are:
 - `require'azy.builtins'.files(paths)`: search for local files under `paths`. This respects both the local `.gitignore` file and `.ignore`.
+- `require'azy.builtins'.help()`: search in the help, open the selected tag on confirm

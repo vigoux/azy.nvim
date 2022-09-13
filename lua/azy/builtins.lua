@@ -12,4 +12,10 @@ function Builtins.files(paths, opts)
    end
 end
 
+function Builtins.help()
+   return function()
+      ui.create(sources.help(), sinks.help_tag)
+   end
+end
+
 return Builtins

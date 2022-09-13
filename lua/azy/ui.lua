@@ -1,6 +1,18 @@
 local fzy = require('fzy-lua-native')
 local hl_ns = vim.api.nvim_create_namespace('azy')
 
+local log
+
+if vim.fn.exists("g:azy_ui_debug") == 1 then
+   print("AzyUi debugging enabled")
+   log = function(...)
+      print("AzyUi:", ...)
+   end
+else
+   log = function()
+   end
+end
+
 local AzyLine = {}
 
 
@@ -30,15 +42,20 @@ local AzyUi = {}
 
 
 
+
 function AzyUi.create(content, callback)
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
    AzyUi._hl_positions = {}
+   AzyUi._search_text_cache = {}
    AzyUi._source_lines = vim.tbl_map(function(e)
+      local toel
       if type(e) == "string" then
-         return { content = { search_text = e }, selected = false }
+         toel = { content = { search_text = e }, selected = false }
       else
-         return { content = e, selected = false }
+         toel = { content = e, selected = false }
       end
+      AzyUi._search_text_cache[toel.content.search_text] = toel
+      return toel
    end, content)
    AzyUi._input_buf = vim.api.nvim_create_buf(false, true)
    AzyUi._output_buf = vim.api.nvim_create_buf(false, true)
@@ -93,6 +110,7 @@ function AzyUi.create(content, callback)
    vim.keymap.set({ "n", "i" }, "<Down>", AzyUi.next, { buffer = AzyUi._input_buf })
    vim.keymap.set({ "n", "i" }, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
    vim.keymap.set({ "n", "i" }, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
+   vim.keymap.set("n", "<ESC>", AzyUi.close, { buffer = AzyUi._input_buf })
 
    AzyUi._update_output_buf()
    vim.cmd.startinsert()
@@ -148,25 +166,35 @@ function AzyUi.close()
 end
 
 function AzyUi._update_output_buf()
+   local start_time = vim.loop.hrtime()
    local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
    if #iline > 0 then
-      local result = fzy.filter(iline, vim.tbl_map(function(e) return e.content.search_text
+      local t = vim.loop.hrtime()
+      local result = fzy.filter(iline, vim.tbl_map(function(e)
+         return e.content.search_text
       end, AzyUi._source_lines), false)
+      log("Filter time", (vim.loop.hrtime() - t) / (1000 * 1000))
 
+      t = vim.loop.hrtime()
       table.sort(result, function(a, b)
-         return a[3] < b[3]
+         if a[3] == b[3] then
+            return #a[1] > #b[1]
+         else
+            return a[3] > b[3]
+         end
       end)
+      log("Sort time", (vim.loop.hrtime() - t) / (1000 * 1000))
 
       AzyUi._current_lines = {}
       AzyUi._hl_positions = {}
 
+      t = vim.loop.hrtime()
       for _, r in ipairs(result) do
-         local source_line = vim.tbl_filter(function(e)
-            return e.content.search_text == r[1]
-         end, AzyUi._source_lines)[1]
+         local source_line = AzyUi._search_text_cache[r[1]]
          table.insert(AzyUi._current_lines, source_line)
          table.insert(AzyUi._hl_positions, r[2])
       end
+      log("Create time", (vim.loop.hrtime() - t) / (1000 * 1000))
 
    else
       AzyUi._current_lines = AzyUi._source_lines
@@ -190,6 +218,7 @@ function AzyUi._update_output_buf()
    end
 
    AzyUi._redraw()
+   log("Total time", (vim.loop.hrtime() - start_time) / (1000 * 1000))
 end
 
 function AzyUi._redraw()

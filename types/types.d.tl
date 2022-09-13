@@ -11,6 +11,7 @@ global record vim
 
   record cmd
     edit: function(string)
+    help: function(string)
     startinsert: function()
     stopinsert: function()
   end
@@ -41,6 +42,7 @@ global record vim
     end
 
     executable: function(string): integer
+    exists: function(string): integer
     fnamemodify: function(string, string): string
     getcwd: function(): string
     glob2regpat: function(string): string
@@ -104,6 +106,7 @@ global record vim
     nvim_set_option: function(string, any)
     nvim_get_option: function(string): any
     nvim_get_vvar: function(string): any
+    nvim_get_runtime_file: function(string, boolean): {string}
 
     nvim_create_augroup: function(string, CreateAugroupOptions)
     nvim_create_autocmd: function(string|{string}, CreateAutocmdOptions)
@@ -189,6 +192,7 @@ global record vim
     end
     fs_scandir: function(string): FSIterator
     fs_scandir_next: function(FSIterator): string|nil, string
+    hrtime: function(): integer
   end
 
   record treesitter
@@ -228,6 +232,13 @@ global record vim
   notify: function(string)
   pretty_print: function(...: any)
   inspect: function(...: any): string
+
+  record SplitOptions
+    plain: boolean
+    trimempty: boolean
+  end
+
+  split: function(string, string, SplitOptions): {string}
 end
 
 global record jit
