@@ -18,6 +18,18 @@ local record AzyLine
   selected: boolean
 end
 
+--- Formats the @p line and return the offset for highlighing
+---
+---@return string Formatted line
+---@return integer Offset for highlighting
+local function format_line(line: AzyLine): string, integer
+  if line.selected then
+    return "> " .. line.content.search_text, 2
+  else
+    return "  " .. line.content.search_text, 2
+  end
+end
+
 local record AzyUi
   create: function({AzyElement|string}, function(AzyElement))
   next: function()
@@ -32,7 +44,8 @@ local record AzyUi
   -- Useful to handle cursor navigation and redrawing
   _update_output_buf: function()
   _redraw: function()
-  _pick_next: function({AzyLine})
+  _redraw_lines: function({integer})
+  _pick_next: function({AzyLine}): integer
 
   _current_lines: {AzyLine}
   _hl_positions: {{integer}}
@@ -120,23 +133,18 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   vim.cmd.startinsert()
 end
 
-function AzyUi._pick_next(inlines: {AzyLine})
-  local found_selected: boolean = false
-
-  for i,sline in ipairs(inlines) do
-    if found_selected then
-      sline.selected = true
-      AzyUi._update_output_buf()
-      return
-    end
-    if sline.selected and i < #inlines then
-      found_selected = true
-      sline.selected = false
+function AzyUi._pick_next(direction: integer): integer
+  for i,sline in ipairs(AzyUi._current_lines) do
+    if sline.selected then
+      local next_item = AzyUi._current_lines[i + direction]
+      if next_item then
+        sline.selected = false
+        next_item.selected = true
+        AzyUi._redraw_lines { i, i + direction }
+        return
+      end
     end
   end
-
-  -- We only get here when we are on the last line, no need to redraw
-  AzyUi._redraw()
 end
 
 function AzyUi.confirm()
@@ -148,15 +156,11 @@ function AzyUi.confirm()
 end
 
 function AzyUi.next()
-  AzyUi._pick_next(AzyUi._current_lines)
+  AzyUi._pick_next(1)
 end
 
 function AzyUi.prev()
-  local tmp: {AzyLine} = {}
-  for _,l in ipairs(AzyUi._current_lines) do
-    table.insert(tmp, 1, l)
-  end
-  AzyUi._pick_next(tmp)
+  AzyUi._pick_next(-1)
 end
 
 function AzyUi.close()
@@ -244,20 +248,51 @@ end
 function AzyUi._redraw()
   local lines_to_draw: {string} = {}
   vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
-  for _, line in ipairs(AzyUi._current_lines) do
+  local sel_line: integer = 0
+  local hl_offset: integer = 0
+  for i, line in ipairs(AzyUi._current_lines) do
     if line.selected then
-      table.insert(lines_to_draw, "> " .. line.content.search_text)
-    else
-      table.insert(lines_to_draw, "  " .. line.content.search_text)
+      sel_line = i
     end
+    local l, off = format_line(line)
+    if hl_offset == 0 then
+      hl_offset = off
+    elseif hl_offset ~= off then
+      error "Inconsistent highlight offset"
+    end
+    table.insert(lines_to_draw, l)
   end
 
+
+
   vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, lines_to_draw)
+
+  if sel_line ~= 0 then
+    vim.api.nvim_win_set_cursor(AzyUi._output_win, {sel_line, 0})
+  end
 
   for i,hls in ipairs(AzyUi._hl_positions) do
     for _,hl in ipairs(hls) do
       -- The highlight is offset by two characters
-      vim.api.nvim_buf_add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl + 1, hl + 2)
+      vim.api.nvim_buf_add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1 + hl_offset, hl + hl_offset)
+    end
+  end
+end
+
+function AzyUi._redraw_lines(lines: {integer})
+  for _, i in ipairs(lines) do
+    if AzyUi._current_lines[i] then
+      local fmt, off = format_line(AzyUi._current_lines[i])
+
+      if AzyUi._current_lines[i].selected then
+        vim.api.nvim_win_set_cursor(AzyUi._output_win, {i, 0})
+      end
+
+      vim.api.nvim_buf_set_lines(AzyUi._output_buf, i - 1, i, true, { fmt })
+      for _,hl in ipairs(AzyUi._hl_positions[i] or {}) do
+        -- The highlight is offset by two characters
+        vim.api.nvim_buf_add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1 + off, hl + off)
+      end
     end
   end
 end
