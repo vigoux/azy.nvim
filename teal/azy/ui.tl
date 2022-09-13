@@ -94,6 +94,7 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   vim.keymap.set({"n", "i"}, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
   vim.keymap.set({"n", "i"}, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
 
+  vim.cmd.startinsert()
   AzyUi._update_output_buf()
 end
 
@@ -135,6 +136,7 @@ function AzyUi.prev()
 end
 
 function AzyUi.close()
+  vim.cmd.stopinsert()
   if vim.api.nvim_win_is_valid(AzyUi._input_win) then
     vim.api.nvim_win_close(AzyUi._input_win, true)
   end

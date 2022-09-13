@@ -9,6 +9,12 @@ global record vim
     columns: integer
   end
 
+  record cmd
+    edit: function(string)
+    startinsert: function()
+    stopinsert: function()
+  end
+
   record keymap
     record SetOption
       buffer: integer|boolean
