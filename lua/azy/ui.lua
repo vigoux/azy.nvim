@@ -118,11 +118,11 @@ function AzyUi._pick_next(inlines)
 end
 
 function AzyUi.confirm()
+   AzyUi.close()
    local selected = vim.tbl_filter(function(e) return e.selected end, AzyUi._current_lines)[1]
    if selected then
       AzyUi._callback(selected.content)
    end
-   AzyUi.close()
 end
 
 function AzyUi.next()
