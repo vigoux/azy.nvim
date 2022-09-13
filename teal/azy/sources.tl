@@ -81,7 +81,11 @@ function Sources.files(paths: {string}, config: Sources.FilesOptions): {AzyEleme
   end
   read_ignore_file(ignored, ".ignore")
 
-  for p in iter_files(paths or {"."}, config.show_hidden, ignored) do
+  if not paths or #paths == 0 then
+    paths = { "." }
+  end
+
+  for p in iter_files(paths, config.show_hidden, ignored) do
     table.insert(ret, { search_text = p })
   end
   return ret
