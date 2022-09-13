@@ -31,13 +31,16 @@ global record vim
       static: string
     end
 
-    taglist: function(string, string|nil): {Tag}
-    pumvisible: function(): integer
+    executable: function(string): integer
+    fnamemodify: function(string, string): string
+    getcwd: function(): string
+    glob2regpat: function(string): string
     match: function(string|{string}, string, integer, integer): integer
     mode: function(): string
-    getcwd: function(): string
+    pumvisible: function(): integer
     reverse: function<T>({T}): {T}
-    fnamemodify: function(string, string): string
+    systemlist: function({string}|string): {string}
+    taglist: function(string, string|nil): {Tag}
   end
 
   record api

@@ -18,4 +18,4 @@ These builtin functions return a functions suitable for
 ```
 
 The available functions are:
-- `require'azy.builtins'.files(paths)`: search for local files under `paths`
+- `require'azy.builtins'.files(paths)`: search for local files under `paths`. This respects both the local `.gitignore` file and `.ignore`.
