@@ -1,3 +1,8 @@
+global record AzyElement
+  search_text: string
+  extra: any
+end
+
 global record vim
   record o
     lines: integer

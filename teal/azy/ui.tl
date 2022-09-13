@@ -2,21 +2,20 @@ local fzy = require'fzy-lua-native'
 local hl_ns = vim.api.nvim_create_namespace 'azy'
 
 local record AzyLine
-  content: string
+  content: AzyElement
   selected: boolean
 end
 
 local record AzyUi
-  create: function({string}, function(string))
+  create: function({AzyElement|string}, function(AzyElement))
   next: function()
   prev: function()
   close: function()
   confirm: function()
 
   -- Private stuff
-  _source_content: {string}
   _source_lines: {AzyLine}
-  _callback: function(string)
+  _callback: function(AzyElement)
 
   -- Useful to handle cursor navigation and redrawing
   _update_output_buf: function()
@@ -31,12 +30,15 @@ local record AzyUi
   _output_win: vim.api.WinNr
 end
 
-function AzyUi.create(content: {string}, callback: function(string))
-  AzyUi._callback = callback or function(i: string) vim.notify(i) end
+function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElement))
+  AzyUi._callback = callback or function(i: AzyElement) vim.notify(i.search_text) end
   AzyUi._hl_positions = {}
-  AzyUi._source_content = content
-  AzyUi._source_lines = vim.tbl_map(function(e: string): AzyLine
-    return { content = e, selected = false }
+  AzyUi._source_lines = vim.tbl_map(function(e: AzyElement|string): AzyLine
+    if e is string then
+      return { content = { search_text = e }, selected = false }
+    else
+      return { content = e, selected = false }
+    end
   end, content)
   AzyUi._input_buf = vim.api.nvim_create_buf(false, true)
   AzyUi._output_buf = vim.api.nvim_create_buf(false, true)
@@ -144,7 +146,8 @@ end
 function AzyUi._update_output_buf()
   local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
   if #iline > 0 then
-    local result = fzy.filter(iline, AzyUi._source_content, false)
+    local result = fzy.filter(iline, vim.tbl_map(function(e: AzyLine): string return e.content.search_text
+    end, AzyUi._source_lines), false)
 
     table.sort(result, function(a: {string, {integer}, integer}, b: {string, {integer}, integer}): boolean
       return a[3] < b[3]
@@ -155,7 +158,7 @@ function AzyUi._update_output_buf()
     -- For each filtered line, find the corresponding source line
     for _, r in ipairs(result) do
       local source_line: AzyLine = vim.tbl_filter(function(e: AzyLine): boolean
-        return e.content == r[1]
+        return e.content.search_text == r[1]
       end, AzyUi._source_lines)[1]
       table.insert(AzyUi._current_lines, source_line)
       table.insert(AzyUi._hl_positions, r[2])
@@ -190,9 +193,9 @@ function AzyUi._redraw()
   vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
   for _, line in ipairs(AzyUi._current_lines) do
     if line.selected then
-      table.insert(lines_to_draw, "> " .. line.content)
+      table.insert(lines_to_draw, "> " .. line.content.search_text)
     else
-      table.insert(lines_to_draw, "  " .. line.content)
+      table.insert(lines_to_draw, "  " .. line.content.search_text)
     end
   end
 

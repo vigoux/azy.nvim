@@ -30,13 +30,15 @@ local AzyUi = {}
 
 
 
-
 function AzyUi.create(content, callback)
-   AzyUi._callback = callback or function(i) vim.notify(i) end
+   AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
    AzyUi._hl_positions = {}
-   AzyUi._source_content = content
    AzyUi._source_lines = vim.tbl_map(function(e)
-      return { content = e, selected = false }
+      if type(e) == "string" then
+         return { content = { search_text = e }, selected = false }
+      else
+         return { content = e, selected = false }
+      end
    end, content)
    AzyUi._input_buf = vim.api.nvim_create_buf(false, true)
    AzyUi._output_buf = vim.api.nvim_create_buf(false, true)
@@ -144,7 +146,8 @@ end
 function AzyUi._update_output_buf()
    local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
    if #iline > 0 then
-      local result = fzy.filter(iline, AzyUi._source_content, false)
+      local result = fzy.filter(iline, vim.tbl_map(function(e) return e.content.search_text
+      end, AzyUi._source_lines), false)
 
       table.sort(result, function(a, b)
          return a[3] < b[3]
@@ -155,7 +158,7 @@ function AzyUi._update_output_buf()
 
       for _, r in ipairs(result) do
          local source_line = vim.tbl_filter(function(e)
-            return e.content == r[1]
+            return e.content.search_text == r[1]
          end, AzyUi._source_lines)[1]
          table.insert(AzyUi._current_lines, source_line)
          table.insert(AzyUi._hl_positions, r[2])
@@ -190,9 +193,9 @@ function AzyUi._redraw()
    vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
    for _, line in ipairs(AzyUi._current_lines) do
       if line.selected then
-         table.insert(lines_to_draw, "> " .. line.content)
+         table.insert(lines_to_draw, "> " .. line.content.search_text)
       else
-         table.insert(lines_to_draw, "  " .. line.content)
+         table.insert(lines_to_draw, "  " .. line.content.search_text)
       end
    end
 
