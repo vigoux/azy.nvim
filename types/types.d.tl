@@ -15,6 +15,10 @@ global record vim
     stopinsert: function()
   end
 
+  record fs
+    normalize: function(string): string
+  end
+
   record Regex
     match_str: function(Regex, string): integer
   end

@@ -20,19 +20,29 @@ end
 
 local function iter_files(paths: {string}, show_hidden: boolean, ignored_patterns: {vim.Regex}): function(): string|nil
   local path_stack = vim.fn.reverse(paths)
-  local iter_stack = {}
-  for _, p in ipairs(path_stack) do
-    iter_stack[p] = vim.loop.fs_scandir(p)
-  end
+
+  -- Nice lua-ism: when the path is not present in here, create a new path FSIterator, otherwise
+  -- return it. The nice thing is that all this is done using normalized file paths.
+  local iters: {string: vim.loop.FSIterator} = setmetatable({}, {
+    __index = function(tbl: {string:vim.loop.FSIterator}, key: string): vim.loop.FSIterator
+      key = vim.fs.normalize(key)
+      local item = rawget(tbl, key)
+      if not item then
+        item = vim.loop.fs_scandir(key)
+        rawset(tbl, key, item)
+      end
+      return item
+    end
+  })
 
   return function(): string|nil
     while true do
       local path = path_stack[#path_stack]
-      local next_path, path_type = vim.loop.fs_scandir_next(iter_stack[path])
+      local next_path, path_type = vim.loop.fs_scandir_next(iters[path])
 
       if not next_path then
         table.remove(path_stack)
-        iter_stack[path] = nil
+        iters[path] = nil
         if #path_stack == 0 then
           return nil
         end
@@ -40,7 +50,6 @@ local function iter_files(paths: {string}, show_hidden: boolean, ignored_pattern
         local full_path = vim.fn.fnamemodify(utils.path_join(path, next_path), ":~:.")
         if path_type == 'directory' then
           table.insert(path_stack, full_path)
-          iter_stack[full_path] = vim.loop.fs_scandir(full_path)
         elseif not is_ignored(full_path, ignored_patterns) then
           return full_path
         end
