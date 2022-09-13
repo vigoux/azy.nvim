@@ -1,18 +1,43 @@
 local fzy = require'fzy-lua-native'
 local hl_ns = vim.api.nvim_create_namespace 'azy'
 
-local record AzyUi
-  create: function({string})
-
-  -- Private stuff
-  _source_lines: {string}
-  _update_output_buf: function()
-  _input_buf: vim.api.BufNr
-  _output_buf: vim.api.BufNr
+local record AzyLine
+  content: string
+  selected: boolean
 end
 
-function AzyUi.create(content: {string})
-  AzyUi._source_lines = content
+local record AzyUi
+  create: function({string}, function(string))
+  next: function()
+  prev: function()
+  close: function()
+  confirm: function()
+
+  -- Private stuff
+  _source_content: {string}
+  _source_lines: {AzyLine}
+  _callback: function(string)
+
+  -- Useful to handle cursor navigation and redrawing
+  _update_output_buf: function()
+  _redraw: function()
+  _pick_next: function({AzyLine})
+  _current_lines: {AzyLine}
+  _hl_positions: {{integer}}
+
+  _input_buf: vim.api.BufNr
+  _input_win: vim.api.WinNr
+  _output_buf: vim.api.BufNr
+  _output_win: vim.api.WinNr
+end
+
+function AzyUi.create(content: {string}, callback: function(string))
+  AzyUi._callback = callback or function(i: string) vim.notify(i) end
+  AzyUi._hl_positions = {}
+  AzyUi._source_content = content
+  AzyUi._source_lines = vim.tbl_map(function(e: string): AzyLine
+    return { content = e, selected = false }
+  end, content)
   AzyUi._input_buf = vim.api.nvim_create_buf(false, true)
   AzyUi._output_buf = vim.api.nvim_create_buf(false, true)
 
@@ -23,7 +48,7 @@ function AzyUi.create(content: {string})
   local display_height = 20
   local input_row = lines - (display_height + 2)
 
-  local iwin = vim.api.nvim_open_win(AzyUi._input_buf, true, {
+  AzyUi._input_win = vim.api.nvim_open_win(AzyUi._input_buf, true, {
     relative = 'editor',
     anchor = 'NW',
     width = columns,
@@ -35,8 +60,8 @@ function AzyUi.create(content: {string})
     border = 'none',
   })
 
-  vim.api.nvim_win_set_option(iwin, 'winblend', 0)
-  local owin = vim.api.nvim_open_win(AzyUi._output_buf, false, {
+  vim.api.nvim_win_set_option(AzyUi._input_win, 'winblend', 0)
+  AzyUi._output_win = vim.api.nvim_open_win(AzyUi._output_buf, false, {
     relative = 'editor',
     anchor = 'NW',
     width = columns,
@@ -48,7 +73,7 @@ function AzyUi.create(content: {string})
     border = 'none',
     noautocmd = true,
   })
-  vim.api.nvim_win_set_option(owin, 'winblend', 0)
+  vim.api.nvim_win_set_option(AzyUi._output_win, 'winblend', 0)
 
   -- Text changed autocommands
   vim.api.nvim_create_autocmd({"TextChanged", "TextChangedI"}, {
@@ -59,42 +84,125 @@ function AzyUi.create(content: {string})
   -- Exit autocommands
   vim.api.nvim_create_autocmd({"BufUnload", "BufDelete", "BufWipeout", "BufLeave"}, {
     buffer = AzyUi._input_buf,
-    callback = function()
-      vim.api.nvim_win_close(iwin, true)
-      vim.api.nvim_win_close(owin, true)
-    end
+    callback = AzyUi.close
   })
+
+  -- Mappings
+  vim.keymap.set({"n", "i"}, "<Down>", AzyUi.next, { buffer = AzyUi._input_buf })
+  vim.keymap.set({"n", "i"}, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
+  vim.keymap.set({"n", "i"}, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
 
   AzyUi._update_output_buf()
 end
 
+function AzyUi._pick_next(inlines: {AzyLine})
+  local found_selected: boolean = false
+
+  for i,sline in ipairs(inlines) do
+    if found_selected then
+      sline.selected = true
+      AzyUi._update_output_buf()
+      return
+    end
+    if sline.selected and i < #inlines then
+      found_selected = true
+      sline.selected = false
+    end
+  end
+
+  -- We only get here when we are on the last line, no need to redraw
+  AzyUi._redraw()
+end
+
+function AzyUi.confirm()
+  local selected = vim.tbl_filter(function(e: AzyLine): boolean return e.selected end, AzyUi._current_lines)[1]
+  AzyUi._callback(selected.content)
+  AzyUi.close()
+end
+
+function AzyUi.next()
+  AzyUi._pick_next(AzyUi._current_lines)
+end
+
+function AzyUi.prev()
+  local tmp: {AzyLine} = {}
+  for _,l in ipairs(AzyUi._current_lines) do
+    table.insert(tmp, 1, l)
+  end
+  AzyUi._pick_next(tmp)
+end
+
+function AzyUi.close()
+  if vim.api.nvim_win_is_valid(AzyUi._input_win) then
+    vim.api.nvim_win_close(AzyUi._input_win, true)
+  end
+  if vim.api.nvim_win_is_valid(AzyUi._output_win) then
+    vim.api.nvim_win_close(AzyUi._output_win, true)
+  end
+end
+
 function AzyUi._update_output_buf()
   local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
-
   if #iline > 0 then
-    local result = fzy.filter(iline, AzyUi._source_lines, false)
+    local result = fzy.filter(iline, AzyUi._source_content, false)
 
     table.sort(result, function(a: {string, {integer}, integer}, b: {string, {integer}, integer}): boolean
       return a[3] < b[3]
     end)
 
-    local outlines: {string} = {}
-    local hl_lines: {{integer}} = {}
+    AzyUi._current_lines = {}
+    AzyUi._hl_positions = {}
+    -- For each filtered line, find the corresponding source line
     for _, r in ipairs(result) do
-      table.insert(outlines, r[1])
-      table.insert(hl_lines, r[2])
+      local source_line: AzyLine = vim.tbl_filter(function(e: AzyLine): boolean
+        return e.content == r[1]
+      end, AzyUi._source_lines)[1]
+      table.insert(AzyUi._current_lines, source_line)
+      table.insert(AzyUi._hl_positions, r[2])
     end
 
-    vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, outlines)
-
-    for i,hls in ipairs(hl_lines) do
-      for _,hl in ipairs(hls) do
-        print(i, hl)
-        vim.api.nvim_buf_add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1, hl)
-      end
-    end
   else
-    vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, AzyUi._source_lines)
+    AzyUi._current_lines = AzyUi._source_lines
+    AzyUi._hl_positions = {}
+  end
+
+  -- Check if there is an element currently selected
+  local selected_index: integer = 0
+  for i, sline in ipairs(AzyUi._current_lines) do
+    if sline.selected and selected_index == 0 then
+      selected_index = i
+    end
+  end
+
+  -- If nothing is selected, select the first line
+  if selected_index == 0 and #AzyUi._current_lines > 0 then
+    for _, sline in ipairs(AzyUi._source_lines) do
+      sline.selected = false
+    end
+    AzyUi._current_lines[1].selected = true
+  end
+
+  AzyUi._redraw()
+end
+
+function AzyUi._redraw()
+  local lines_to_draw: {string} = {}
+  vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
+  for _, line in ipairs(AzyUi._current_lines) do
+    if line.selected then
+      table.insert(lines_to_draw, "> " .. line.content)
+    else
+      table.insert(lines_to_draw, "  " .. line.content)
+    end
+  end
+
+  vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, lines_to_draw)
+
+  for i,hls in ipairs(AzyUi._hl_positions) do
+    for _,hl in ipairs(hls) do
+      -- The highlight is offset by two characters
+      vim.api.nvim_buf_add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl + 1, hl + 2)
+    end
   end
 end
 

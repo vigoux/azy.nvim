@@ -4,6 +4,13 @@ global record vim
     columns: integer
   end
 
+  record keymap
+    record SetOption
+      buffer: integer|boolean
+    end
+    set: function(string|{string}, string, function()|string, SetOption)
+  end
+
   record fn
     record Tag
       name: string
@@ -85,6 +92,7 @@ global record vim
     nvim_buf_set_lines: function(BufNr, integer, integer, boolean, {string})
     nvim_buf_set_text: function(BufNr, integer, integer, integer, integer, {string})
     nvim_buf_add_highlight: function(BufNr, NSId, string, integer, integer, integer)
+    nvim_buf_clear_namespace: function(BufNr, NSId, integer, integer)
 
     nvim_open_win: function(BufNr, boolean, OpenWinOptions): WinNr
     nvim_win_close: function(WinNr, boolean)
@@ -92,6 +100,7 @@ global record vim
     nvim_win_set_option: function(WinNr, string, any)
     nvim_win_set_cursor: function(WinNr, {integer, integer})
     nvim_win_get_cursor: function(WinNr): {integer, integer}
+    nvim_win_is_valid: function(WinNr): boolean
   end
 
   record lsp
@@ -186,7 +195,9 @@ global record vim
   str_byteindex: function(string, integer, boolean|nil): integer
 
   tbl_deep_extend: function(string, ...: table): table
-  tbl_map: function<T>(function(T), {T})
+  tbl_map: function<T, K>((function(T): K), {T}): {K}
+  tbl_filter: function<T>((function(T): boolean), {T}): {T}
+  tbl_filter: function<T>({T}, T): boolean
 
   list_extend: function<T>({T}, {T}, integer|nil, integer|nil): {T}
 
