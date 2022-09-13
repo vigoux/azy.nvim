@@ -94,8 +94,8 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   vim.keymap.set({"n", "i"}, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
   vim.keymap.set({"n", "i"}, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
 
-  vim.cmd.startinsert()
   AzyUi._update_output_buf()
+  vim.cmd.startinsert()
 end
 
 function AzyUi._pick_next(inlines: {AzyLine})
@@ -119,7 +119,9 @@ end
 
 function AzyUi.confirm()
   local selected = vim.tbl_filter(function(e: AzyLine): boolean return e.selected end, AzyUi._current_lines)[1]
-  AzyUi._callback(selected.content)
+  if selected then
+    AzyUi._callback(selected.content)
+  end
   AzyUi.close()
 end
 

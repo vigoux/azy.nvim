@@ -15,6 +15,11 @@ global record vim
     stopinsert: function()
   end
 
+  record Regex
+    match_str: function(Regex, string): integer
+  end
+  regex: function(string): Regex
+
   record keymap
     record SetOption
       buffer: integer|boolean

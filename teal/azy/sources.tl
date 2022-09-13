@@ -9,69 +9,52 @@ local record Sources
 end
 
 -- Copied from complementree
-local os_name = string.lower(jit.os)
-local is_linux = (os_name == 'linux' or os_name == 'osx' or os_name == 'bsd')
-local os_sep = is_linux and '/' or '\\'
-
-local function is_ignored(path: string, patterns: {string}): boolean
+local function is_ignored(path: string, patterns: {vim.Regex}): boolean
   for _, p in ipairs(patterns) do
-    if string.find(path, p) then
-      print("Matched", p)
+    if p:match_str(path) then
       return true
     end
   end
   return false
 end
 
-local function iter_files(paths: {string}, config: Sources.FilesOptions): function(): string|nil
-  local path_stack = vim.fn.reverse(paths or { '.' })
-  config = config or {}
+local function iter_files(paths: {string}, show_hidden: boolean, ignored_patterns: {vim.Regex}): function(): string|nil
+  local path_stack = vim.fn.reverse(paths)
   local iter_stack = {}
   for _, p in ipairs(path_stack) do
-    table.insert(iter_stack, vim.loop.fs_scandir(p))
+    iter_stack[p] = vim.loop.fs_scandir(p)
   end
 
   return function(): string|nil
-    local iter = iter_stack[#iter_stack]
-    local path = path_stack[#path_stack]
     while true do
-      local next_path, path_type = vim.loop.fs_scandir_next(iter)
+      local path = path_stack[#path_stack]
+      local next_path, path_type = vim.loop.fs_scandir_next(iter_stack[path])
 
       if not next_path then
-        table.remove(iter_stack)
         table.remove(path_stack)
-        if #iter_stack == 0 then
+        iter_stack[path] = nil
+        if #path_stack == 0 then
           return nil
         end
-        iter = iter_stack[#iter_stack]
-        path = path_stack[#path_stack]
-      elseif (vim.startswith(next_path, '.') and not config.show_hidden) then
-        next_path = nil
-        path_type = nil
-      else
-        local full_path = vim.fn.fnamemodify(path .. os_sep .. next_path, ":~:.")
+      elseif not (vim.startswith(next_path, '.') and not show_hidden) then
+        local full_path = vim.fn.fnamemodify(utils.path_join(path, next_path), ":~:.")
         if path_type == 'directory' then
-          iter = vim.loop.fs_scandir(full_path)
-          path = full_path
           table.insert(path_stack, full_path)
-          table.insert(iter_stack, iter)
-        elseif not is_ignored(full_path, config.ignored_patterns) then
+          iter_stack[full_path] = vim.loop.fs_scandir(full_path)
+        elseif not is_ignored(full_path, ignored_patterns) then
           return full_path
-        else
-          next_path = nil
-          path_type = nil
         end
       end
     end
   end
 end
 
-local function read_ignore_file(ignored_patterns: {string}, path: string)
+local function read_ignore_file(ignored_patterns: {vim.Regex}, path: string)
   local file = io.open(path)
   if file then
     for line, _ in function(): (string, string) return file:read() end do
       if not vim.startswith(line, '#') then
-        table.insert(ignored_patterns, vim.fn.glob2regpat(line))
+        table.insert(ignored_patterns, vim.regex(vim.fn.glob2regpat(line)))
       end
     end
   end
@@ -82,14 +65,14 @@ function Sources.files(paths: {string}, config: Sources.FilesOptions): {AzyEleme
   config = config or {}
 
   -- Set the ignored patterns using .gitignore and ignore
-  config.ignored_patterns = config.ignored_patterns or {}
-  local ok, gitdir = pcall(utils.git, "rev-parse", "--top-level")
+  local ignored = vim.tbl_map(function(e: string): vim.Regex return vim.regex(e) end, config.ignored_patterns or {})
+  local ok, gitdir = pcall(utils.git, "rev-parse", "--show-toplevel")
   if ok and #gitdir == 1 then
-    read_ignore_file(config.ignored_patterns, gitdir[1] .. os_sep .. ".gitignore")
+    read_ignore_file(ignored, utils.path_join(gitdir[1], ".gitignore"))
   end
-  read_ignore_file(config.ignored_patterns, ".ignore")
+  read_ignore_file(ignored, ".ignore")
 
-  for p in iter_files(paths, config) do
+  for p in iter_files(paths or {"."}, config.show_hidden, ignored) do
     table.insert(ret, { search_text = p })
   end
   return ret
