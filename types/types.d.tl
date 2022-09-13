@@ -37,6 +37,7 @@ global record vim
     mode: function(): string
     getcwd: function(): string
     reverse: function<T>({T}): {T}
+    fnamemodify: function(string, string): string
   end
 
   record api

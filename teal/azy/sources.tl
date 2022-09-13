@@ -53,7 +53,7 @@ end
 function Sources.files(paths: {string}, config: Sources.FilesOptions): {AzyElement}
   local ret = {}
   for p in iter_files(paths, config) do
-    table.insert(ret, { search_text = p })
+    table.insert(ret, { search_text = vim.fn.fnamemodify(p, ":~:.") })
   end
   return ret
 end
