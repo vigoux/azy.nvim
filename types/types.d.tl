@@ -229,7 +229,7 @@ global record vim
   tbl_deep_extend: function(string, ...: table): table
   tbl_map: function<T, K>((function(T): K), {T}): {K}
   tbl_filter: function<T>((function(T): boolean), {T}): {T}
-  tbl_filter: function<T>({T}, T): boolean
+  tbl_contains: function<T>({T}, T): boolean
 
   list_extend: function<T>({T}, {T}, integer|nil, integer|nil): {T}
 

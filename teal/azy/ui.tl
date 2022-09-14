@@ -39,7 +39,6 @@ end
 
 local record AzyLine
   content: AzyElement
-  selected: boolean
 
   -- Cached private stuff
   _selected_fmt: string
@@ -50,8 +49,8 @@ end
 ---
 ---@return string Formatted line
 ---@return integer Offset for highlighting
-local function format_line(line: AzyLine): string, integer
-  if line.selected then
+local function format_line(line: AzyLine, selected: boolean): string, integer
+  if selected then
     if not line._selected_fmt then
       line._selected_fmt = "> " .. line.content.search_text
     end
@@ -77,11 +76,15 @@ local record AzyUi
   _source_lines: {AzyLine}
   _callback: function(AzyElement)
 
-  -- Useful to handle cursor navigation and redrawing
+  -- Main update function, refreshs the whole buffer
   _update_output_buf: function()
   _redraw: function()
+
+  -- Useful to handle cursor navigation and redrawing
+  _selected: AzyLine
   _redraw_lines: function({integer})
   _pick_next: function({AzyLine}): integer
+  _cursor_set: boolean
 
   _current_prompt: string|nil
   _current_lines: {AzyLine}
@@ -104,12 +107,13 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   AzyUi._search_result_cache = {}
   AzyUi._search_text_cache = {}
   AzyUi._current_prompt = nil
+  AzyUi._selected = nil
   AzyUi._source_lines = vim.tbl_map(function(e: AzyElement|string): AzyLine
     local toel: AzyLine
     if e is string then
-      toel = { content = { search_text = e }, selected = false }
+      toel = { content = { search_text = e } }
     else
-      toel = { content = e, selected = false }
+      toel = { content = e }
     end
     AzyUi._search_text_cache[toel.content.search_text] = toel
     return toel
@@ -177,23 +181,19 @@ end
 
 function AzyUi._pick_next(direction: integer): integer
   for i,sline in ipairs(AzyUi._current_lines) do
-    if sline.selected then
-      local next_item = AzyUi._current_lines[i + direction]
-      if next_item then
-        sline.selected = false
-        next_item.selected = true
-        AzyUi._redraw_lines { i, i + direction }
-        return
-      end
+    local next_item = AzyUi._current_lines[i + direction]
+    if sline == AzyUi._selected and next_item then
+      AzyUi._selected = next_item
+      AzyUi._redraw_lines { i, i + direction }
+      return
     end
   end
 end
 
 function AzyUi.confirm()
   AzyUi._close()
-  local selected = vim.tbl_filter(function(e: AzyLine): boolean return e.selected end, AzyUi._current_lines)[1]
-  if selected then
-    AzyUi._callback(selected.content)
+  if AzyUi._selected then
+    AzyUi._callback(AzyUi._selected.content)
   end
   AzyUi._destroy()
 end
@@ -285,20 +285,12 @@ function AzyUi._update_output_buf()
     AzyUi._current_prompt = iline
 
     time_this("Cursor correction", function()
-      -- Check if there is an element currently selected
-      local selected_index: integer = 0
-      for i, sline in ipairs(AzyUi._current_lines) do
-        if sline.selected and selected_index == 0 then
-          selected_index = i
-        end
+      if vim.tbl_contains(AzyUi._current_lines, AzyUi._selected) then
+        return
       end
 
-      -- If nothing is selected, select the first line
-      if selected_index == 0 and #AzyUi._current_lines > 0 then
-        for _, sline in ipairs(AzyUi._source_lines) do
-          sline.selected = false
-        end
-        AzyUi._current_lines[1].selected = true
+      if #AzyUi._current_lines > 0 then
+        AzyUi._selected = AzyUi._current_lines[1]
       end
     end)
 
@@ -315,10 +307,11 @@ function AzyUi._redraw()
     local hl_offset: integer = 0
     time_this("Build lines", function()
       for i, line in ipairs(AzyUi._current_lines) do
-        if line.selected then
+        local line_selected: boolean = line == AzyUi._selected
+        if line_selected then
           sel_line = i
         end
-        local l, off = format_line(line)
+        local l, off = format_line(line, line_selected)
         if hl_offset == 0 then
           hl_offset = off
         elseif hl_offset ~= off then
@@ -350,9 +343,10 @@ end
 function AzyUi._redraw_lines(lines: {integer})
   for _, i in ipairs(lines) do
     if AzyUi._current_lines[i] then
-      local fmt, off = format_line(AzyUi._current_lines[i])
+      local fmt, off = format_line(AzyUi._current_lines[i],
+        AzyUi._current_lines[i] == AzyUi._selected)
 
-      if AzyUi._current_lines[i].selected then
+      if AzyUi._current_lines[i] == AzyUi._selected then
         vim.api.nvim_win_set_cursor(AzyUi._output_win, {i, 0})
       end
 
