@@ -83,7 +83,6 @@ local record AzyUi
   _selected: AzyLine
   _redraw_lines: function({integer})
   _pick_next: function({AzyLine}): integer
-  _cursor_set: boolean
 
   _current_prompt: string|nil
   _current_lines: {AzyLine}
@@ -288,15 +287,7 @@ function AzyUi._update_output_buf()
 
     AzyUi._current_prompt = iline
 
-    time_this("Cursor correction", function()
-      if vim.tbl_contains(AzyUi._current_lines, AzyUi._selected) then
-        return
-      end
-
-      if #AzyUi._current_lines > 0 then
-        AzyUi._selected = AzyUi._current_lines[1]
-      end
-    end)
+    AzyUi._selected = AzyUi._current_lines[1]
 
     AzyUi._redraw()
   end)

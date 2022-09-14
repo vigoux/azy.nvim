@@ -99,7 +99,6 @@ local AzyUi = {}
 
 
 
-
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
@@ -288,15 +287,7 @@ function AzyUi._update_output_buf()
 
       AzyUi._current_prompt = iline
 
-      time_this("Cursor correction", function()
-         if vim.tbl_contains(AzyUi._current_lines, AzyUi._selected) then
-            return
-         end
-
-         if #AzyUi._current_lines > 0 then
-            AzyUi._selected = AzyUi._current_lines[1]
-         end
-      end)
+      AzyUi._selected = AzyUi._current_lines[1]
 
       AzyUi._redraw()
    end)
