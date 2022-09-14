@@ -1,4 +1,4 @@
-local fzy = require('fzy-lua-native')
+local fzy = require('fzy')
 local AUGROUP_NAME = "AzyUi"
 local hl_ns = vim.api.nvim_create_namespace('azy')
 
@@ -99,14 +99,18 @@ local AzyUi = {}
 
 
 
+
+
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
    AzyUi._search_result_cache = {}
-   AzyUi._search_text_cache = {}
    AzyUi._current_prompt = nil
    AzyUi._selected = nil
+
+   AzyUi._search_text_cache = {}
+   local all_lines = {}
    AzyUi._source_lines = vim.tbl_map(function(e)
       local toel
       if type(e) == "string" then
@@ -115,8 +119,13 @@ function AzyUi.create(content, callback)
          toel = { content = e }
       end
       AzyUi._search_text_cache[toel.content.search_text] = toel
+      all_lines[#all_lines + 1] = toel.content.search_text
       return toel
    end, content)
+
+   AzyUi._choices = fzy.create()
+   AzyUi._choices:add(all_lines)
+
    AzyUi._input_buf = vim.api.nvim_create_buf(false, true)
    AzyUi._output_buf = vim.api.nvim_create_buf(false, true)
 
@@ -179,18 +188,6 @@ function AzyUi.create(content, callback)
    vim.cmd.startinsert()
 end
 
-function AzyUi._pick_next(direction)
-   for i = 1, #AzyUi._current_lines do
-      local sline = AzyUi._current_lines[i]
-      local next_item = AzyUi._current_lines[i + direction]
-      if sline == AzyUi._selected and next_item then
-         AzyUi._selected = next_item
-         AzyUi._redraw_lines({ i, i + direction })
-         return
-      end
-   end
-end
-
 function AzyUi.confirm()
    AzyUi._close()
    if AzyUi._selected then
@@ -200,11 +197,21 @@ function AzyUi.confirm()
 end
 
 function AzyUi.next()
-   AzyUi._pick_next(1)
+   local res = AzyUi._choices:next()
+   if res then
+      AzyUi._selected = AzyUi._search_text_cache[res]
+   else
+   end
+   AzyUi._redraw()
 end
 
 function AzyUi.prev()
-   AzyUi._pick_next(-1)
+   local res = AzyUi._choices:prev()
+   if res then
+      AzyUi._selected = AzyUi._search_text_cache[res]
+   else
+   end
+   AzyUi._redraw()
 end
 
 function AzyUi._close()
@@ -229,6 +236,7 @@ function AzyUi._destroy()
    AzyUi._search_result_cache = {}
    AzyUi._search_text_cache = {}
    AzyUi._source_lines = {}
+   AzyUi._choices = nil
 end
 
 function AzyUi._update_output_buf()
@@ -249,22 +257,7 @@ function AzyUi._update_output_buf()
          else
             local result
             time_this("Filter", function()
-               local lines = {}
-               local clines = AzyUi._current_lines
-               for i = 1, #clines do
-                  lines[i] = clines[i].content.search_text
-               end
-               result = fzy.match_many(iline, lines, false)
-            end)
-
-            time_this("Sort", function()
-               table.sort(result, function(a, b)
-                  if a[2] == b[2] then
-                     return #a[1] < #b[1]
-                  else
-                     return a[2] > b[2]
-                  end
-               end)
+               result = AzyUi._choices:search(iline)
             end)
 
             time_this("Insert", function()
@@ -353,7 +346,11 @@ local function on_line(_, _, buf, row)
    local line = AzyUi._current_lines[row + 1]
    if not line then return end
 
-   local score = fzy.score(AzyUi._current_prompt, line.content.search_text, false)
+   local score, positions = fzy.match(AzyUi._current_prompt, line.content.search_text)
+   if not score then
+      error("Inconsistent state")
+   end
+
    if DEBUG and AzyUi._current_prompt and #AzyUi._current_prompt > 0 then
       set_extmark(buf, hl_ns, row, 0, {
          ephemeral = true,
@@ -361,7 +358,7 @@ local function on_line(_, _, buf, row)
          virt_text_pos = "right_align",
       })
    end
-   for _, hl in ipairs(fzy.positions(AzyUi._current_prompt, line.content.search_text, false)) do
+   for _, hl in ipairs(positions) do
 
       set_extmark(buf, hl_ns, row, hl - 1 + off, {
          end_col = hl + off,

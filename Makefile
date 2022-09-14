@@ -1,4 +1,4 @@
-build:
+build: lib
 	tl build
 
 check:
@@ -9,3 +9,6 @@ ensure: build
 
 test:
 	./run_tests.sh
+
+lib:
+	make -C lua/fzy/

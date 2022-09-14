@@ -13,7 +13,7 @@ configurability.
 Using `packer.nvim`:
 
 ```lua
-use { 'vigoux/azy.nvim', requires = { 'vigoux/fzy-lua-native', run = 'make' } }
+use { 'vigoux/azy.nvim', run = 'make lib' }
 ```
 
 ## Usage
