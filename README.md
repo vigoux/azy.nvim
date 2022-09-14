@@ -1,8 +1,12 @@
-# `azy.nvim` incremental picker based of `fzy`
+# `azy.nvim` fuzzy finder for `neovim` based on `fzy`
 
-This plugin provides a simple UI to selecte an item from a list.
+This plugin provides a simple UI to select an item from a list.
 It is very much my own version of the multitude of plugins like
-[telescope.nvim](https://github.com/nvim-telescope/telescope.nvim).
+[telescope.nvim].
+
+The goal of this plugin will be different than [telescope.nvim]. This
+plugin focuses on speed and non-intrusivness rather that
+configurability.
 
 ## Installation
 
@@ -38,3 +42,5 @@ the problem, and I'll be glad to look into it.
 
 Note though that on reasonably sized word lists (10K-ish entries), you
 should not encounter any problem.
+
+[telescope.nvim]: https://github.com/nvim-telescope/telescope.nvim
