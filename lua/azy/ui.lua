@@ -99,12 +99,10 @@ local AzyUi = {}
 
 
 
-
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
-   AzyUi._hl_positions = {}
    AzyUi._search_result_cache = {}
    AzyUi._search_text_cache = {}
    AzyUi._current_prompt = nil
@@ -228,7 +226,6 @@ end
 function AzyUi._destroy()
    log("Destroying")
    AzyUi._current_lines = {}
-   AzyUi._hl_positions = {}
    AzyUi._search_result_cache = {}
    AzyUi._search_text_cache = {}
    AzyUi._source_lines = {}
@@ -248,8 +245,7 @@ function AzyUi._update_output_buf()
       if #iline > 0 then
          local cached = AzyUi._search_result_cache[iline]
          if cached then
-            AzyUi._current_lines = cached[1]
-            AzyUi._hl_positions = cached[2]
+            AzyUi._current_lines = cached
          else
             local result
             time_this("Filter", function()
@@ -258,15 +254,15 @@ function AzyUi._update_output_buf()
                for i = 1, #clines do
                   lines[i] = clines[i].content.search_text
                end
-               result = fzy.filter(iline, lines, false)
+               result = fzy.match_many(iline, lines, false)
             end)
 
             time_this("Sort", function()
                table.sort(result, function(a, b)
-                  if a[3] == b[3] then
+                  if a[2] == b[2] then
                      return #a[1] > #b[1]
                   else
-                     return a[3] > b[3]
+                     return a[2] > b[2]
                   end
                end)
             end)
@@ -281,14 +277,12 @@ function AzyUi._update_output_buf()
                   hlpos[i] = r[2]
                end
                AzyUi._current_lines = clines
-               AzyUi._hl_positions = hlpos
             end)
 
-            AzyUi._search_result_cache[iline] = { AzyUi._current_lines, AzyUi._hl_positions }
+            AzyUi._search_result_cache[iline] = AzyUi._current_lines
          end
       else
          AzyUi._current_lines = AzyUi._source_lines
-         AzyUi._hl_positions = {}
       end
 
       AzyUi._current_prompt = iline
@@ -364,7 +358,8 @@ local set_extmark = vim.api.nvim_buf_set_extmark
 
 local function on_line(_, _, buf, row)
    local off = AzyUi._hl_offset
-   for _, hl in ipairs(AzyUi._hl_positions[row + 1] or {}) do
+   local line = AzyUi._current_lines[row + 1]
+   for _, hl in ipairs(fzy.positions(AzyUi._current_prompt, line.content.search_text, false)) do
 
       set_extmark(buf, hl_ns, row, hl - 1 + off, {
          end_col = hl + off,

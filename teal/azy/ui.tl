@@ -86,10 +86,9 @@ local record AzyUi
 
   _current_prompt: string|nil
   _current_lines: {AzyLine}
-  _hl_positions: {{integer}}
   _hl_offset: integer
 
-  _search_result_cache: {string: {{AzyLine},{{integer}}}}
+  _search_result_cache: {string: {AzyLine}}
   _search_text_cache: {string:AzyLine}
 
   _input_buf: vim.api.BufNr
@@ -104,7 +103,6 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   log("Creating with", #content, "elements")
   vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
   AzyUi._callback = callback or function(i: AzyElement) vim.notify(i.search_text) end
-  AzyUi._hl_positions = {}
   AzyUi._search_result_cache = {}
   AzyUi._search_text_cache = {}
   AzyUi._current_prompt = nil
@@ -228,7 +226,6 @@ end
 function AzyUi._destroy()
   log "Destroying"
   AzyUi._current_lines = {}
-  AzyUi._hl_positions = {}
   AzyUi._search_result_cache = {}
   AzyUi._search_text_cache = {}
   AzyUi._source_lines = {}
@@ -248,25 +245,24 @@ function AzyUi._update_output_buf()
     if #iline > 0 then
       local cached = AzyUi._search_result_cache[iline]
       if cached then
-        AzyUi._current_lines = cached[1]
-        AzyUi._hl_positions = cached[2]
+        AzyUi._current_lines = cached
       else
-        local result: {{string, {integer}, integer}}
+        local result: {{string, number}}
         time_this("Filter", function()
           local lines = {}
           local clines = AzyUi._current_lines
           for i = 1,#clines do
             lines[i] = clines[i].content.search_text
           end
-          result = fzy.filter(iline, lines, false)
+          result = fzy.match_many(iline, lines, false)
         end)
 
         time_this("Sort", function()
-          table.sort(result, function(a: {string, {integer}, integer}, b: {string, {integer}, integer}): boolean
-            if a[3] == b[3] then
+          table.sort(result, function(a: {string, integer}, b: {string, integer}): boolean
+            if a[2] == b[2] then
               return #a[1] > #b[1]
             else
-              return a[3] > b[3]
+              return a[2] > b[2]
             end
           end)
         end)
@@ -281,14 +277,12 @@ function AzyUi._update_output_buf()
             hlpos[i] = r[2]
           end
           AzyUi._current_lines = clines
-          AzyUi._hl_positions = hlpos
         end)
 
-        AzyUi._search_result_cache[iline] = {AzyUi._current_lines, AzyUi._hl_positions}
+        AzyUi._search_result_cache[iline] = AzyUi._current_lines
       end
     else
       AzyUi._current_lines = AzyUi._source_lines
-      AzyUi._hl_positions = {}
     end
 
     AzyUi._current_prompt = iline
@@ -364,7 +358,8 @@ local set_extmark = vim.api.nvim_buf_set_extmark
 
 local function on_line(_: string, _: vim.api.WinNr, buf: vim.api.BufNr, row: integer): boolean
   local off = AzyUi._hl_offset
-  for _,hl in ipairs(AzyUi._hl_positions[row + 1] or {}) do
+  local line: AzyLine = AzyUi._current_lines[row + 1]
+  for _,hl in ipairs(fzy.positions(AzyUi._current_prompt, line.content.search_text, false)) do
     -- The highlight is offset by two characters
     set_extmark(buf, hl_ns, row, hl - 1 + off, {
       end_col = hl + off,
