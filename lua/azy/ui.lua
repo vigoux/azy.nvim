@@ -1,15 +1,31 @@
 local fzy = require('fzy-lua-native')
 local hl_ns = vim.api.nvim_create_namespace('azy')
 
+local add_highlight = vim.api.nvim_buf_add_highlight
+
 local log
+local time_this
 
 if vim.fn.exists("g:azy_ui_debug") == 1 then
    print("AzyUi debugging enabled")
    log = function(...)
       print("AzyUi:", ...)
    end
+
+   local htime = vim.loop.hrtime
+
+   time_this = function(msg, f)
+      log("--->", msg, "start")
+      local t = htime()
+      f()
+      log("<---", msg, "stop:", (htime() - t) / (1000 * 1000))
+   end
 else
    log = function()
+   end
+
+   time_this = function(_, f)
+      f()
    end
 end
 
@@ -22,11 +38,21 @@ local AzyLine = {}
 
 
 
+
+
+
+
 local function format_line(line)
    if line.selected then
-      return "> " .. line.content.search_text, 2
+      if not line._selected_fmt then
+         line._selected_fmt = "> " .. line.content.search_text
+      end
+      return line._selected_fmt, 2
    else
-      return "  " .. line.content.search_text, 2
+      if not line._raw_fmt then
+         line._raw_fmt = "  " .. line.content.search_text
+      end
+      return line._raw_fmt, 2
    end
 end
 
@@ -193,108 +219,111 @@ end
 
 function AzyUi._update_output_buf()
 
-   log("Redraw start")
-   local start_time = vim.loop.hrtime()
+   time_this("Update", function()
 
+      local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
+      if #iline > 0 then
+         local cached = AzyUi._search_result_cache[iline]
+         if cached then
+            AzyUi._current_lines = cached[1]
+            AzyUi._hl_positions = cached[2]
+         else
+            local result
+            time_this("Filter", function()
+               result = fzy.filter(iline, vim.tbl_map(function(e)
+                  return e.content.search_text
+               end, AzyUi._current_lines), false)
+            end)
 
-   local t
-   local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
-   if #iline > 0 then
-      local cached = AzyUi._search_result_cache[iline]
-      if cached then
-         AzyUi._current_lines = cached[1]
-         AzyUi._hl_positions = cached[2]
-      else
-         t = vim.loop.hrtime()
-         local result = fzy.filter(iline, vim.tbl_map(function(e)
-            return e.content.search_text
-         end, AzyUi._current_lines), false)
-         log("Filter time", (vim.loop.hrtime() - t) / (1000 * 1000))
+            time_this("Sort", function()
+               table.sort(result, function(a, b)
+                  if a[3] == b[3] then
+                     return #a[1] > #b[1]
+                  else
+                     return a[3] > b[3]
+                  end
+               end)
+            end)
 
-         t = vim.loop.hrtime()
-         table.sort(result, function(a, b)
-            if a[3] == b[3] then
-               return #a[1] > #b[1]
-            else
-               return a[3] > b[3]
-            end
-         end)
-         log("Sort time", (vim.loop.hrtime() - t) / (1000 * 1000))
+            time_this("Insert", function()
+               AzyUi._current_lines = {}
+               AzyUi._hl_positions = {}
 
-         AzyUi._current_lines = {}
-         AzyUi._hl_positions = {}
+               for _, r in ipairs(result) do
+                  local source_line = AzyUi._search_text_cache[r[1]]
+                  table.insert(AzyUi._current_lines, source_line)
+                  table.insert(AzyUi._hl_positions, r[2])
+               end
+            end)
 
-         t = vim.loop.hrtime()
-         for _, r in ipairs(result) do
-            local source_line = AzyUi._search_text_cache[r[1]]
-            table.insert(AzyUi._current_lines, source_line)
-            table.insert(AzyUi._hl_positions, r[2])
+            AzyUi._search_result_cache[iline] = { AzyUi._current_lines, AzyUi._hl_positions }
          end
-         log("Create time", (vim.loop.hrtime() - t) / (1000 * 1000))
-
-         AzyUi._search_result_cache[iline] = { AzyUi._current_lines, AzyUi._hl_positions }
+      else
+         AzyUi._current_lines = AzyUi._source_lines
+         AzyUi._hl_positions = {}
       end
-   else
-      AzyUi._current_lines = AzyUi._source_lines
-      AzyUi._hl_positions = {}
-   end
 
-   t = vim.loop.hrtime()
+      time_this("Cursor correction", function()
 
-   local selected_index = 0
-   for i, sline in ipairs(AzyUi._current_lines) do
-      if sline.selected and selected_index == 0 then
-         selected_index = i
-      end
-   end
-   log("Correct selection", (vim.loop.hrtime() - t) / (1000 * 1000))
+         local selected_index = 0
+         for i, sline in ipairs(AzyUi._current_lines) do
+            if sline.selected and selected_index == 0 then
+               selected_index = i
+            end
+         end
 
 
-   if selected_index == 0 and #AzyUi._current_lines > 0 then
-      for _, sline in ipairs(AzyUi._source_lines) do
-         sline.selected = false
-      end
-      AzyUi._current_lines[1].selected = true
-   end
+         if selected_index == 0 and #AzyUi._current_lines > 0 then
+            for _, sline in ipairs(AzyUi._source_lines) do
+               sline.selected = false
+            end
+            AzyUi._current_lines[1].selected = true
+         end
+      end)
 
-   t = vim.loop.hrtime()
-   AzyUi._redraw()
-   log("Redraw time", (vim.loop.hrtime() - t) / (1000 * 1000))
-   log("Total time", (vim.loop.hrtime() - start_time) / (1000 * 1000))
+      AzyUi._redraw()
+   end)
 end
 
 function AzyUi._redraw()
-   local lines_to_draw = {}
-   vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
-   local sel_line = 0
-   local hl_offset = 0
-   for i, line in ipairs(AzyUi._current_lines) do
-      if line.selected then
-         sel_line = i
+   time_this("Redraw", function()
+      local lines_to_draw = {}
+      vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
+
+      local sel_line = 0
+      local hl_offset = 0
+      time_this("Build lines", function()
+         for i, line in ipairs(AzyUi._current_lines) do
+            if line.selected then
+               sel_line = i
+            end
+            local l, off = format_line(line)
+            if hl_offset == 0 then
+               hl_offset = off
+            elseif hl_offset ~= off then
+               error("Inconsistent highlight offset")
+            end
+            table.insert(lines_to_draw, l)
+         end
+      end)
+
+
+
+      vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, lines_to_draw)
+
+      if sel_line ~= 0 then
+         vim.api.nvim_win_set_cursor(AzyUi._output_win, { sel_line, 0 })
       end
-      local l, off = format_line(line)
-      if hl_offset == 0 then
-         hl_offset = off
-      elseif hl_offset ~= off then
-         error("Inconsistent highlight offset")
-      end
-      table.insert(lines_to_draw, l)
-   end
 
+      time_this("Highlight", function()
+         for i, hls in ipairs(AzyUi._hl_positions) do
+            for _, hl in ipairs(hls) do
 
-
-   vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, lines_to_draw)
-
-   if sel_line ~= 0 then
-      vim.api.nvim_win_set_cursor(AzyUi._output_win, { sel_line, 0 })
-   end
-
-   for i, hls in ipairs(AzyUi._hl_positions) do
-      for _, hl in ipairs(hls) do
-
-         vim.api.nvim_buf_add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1 + hl_offset, hl + hl_offset)
-      end
-   end
+               add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1 + hl_offset, hl + hl_offset)
+            end
+         end
+      end)
+   end)
 end
 
 function AzyUi._redraw_lines(lines)
@@ -309,7 +338,7 @@ function AzyUi._redraw_lines(lines)
          vim.api.nvim_buf_set_lines(AzyUi._output_buf, i - 1, i, true, { fmt })
          for _, hl in ipairs(AzyUi._hl_positions[i] or {}) do
 
-            vim.api.nvim_buf_add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1 + off, hl + off)
+            add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1 + off, hl + off)
          end
       end
    end
