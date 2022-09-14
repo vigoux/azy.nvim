@@ -49,6 +49,7 @@ global record vim
     match: function(string|{string}, string, integer, integer): integer
     mode: function(): string
     pumvisible: function(): integer
+    ["repeat"]: function(string, integer): string
     reverse: function<T>({T}): {T}
     systemlist: function({string}|string): {string}
     taglist: function(string, string|nil): {Tag}

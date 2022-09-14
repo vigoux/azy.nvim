@@ -14,11 +14,18 @@ if vim.fn.exists("g:azy_ui_debug") == 1 then
 
    local htime = vim.loop.hrtime
 
+   local level = 0
    time_this = function(msg, f)
-      log("--->", msg, "start")
+      level = level + 1
+      local arrow_head = vim.fn['repeat']('-', level)
+      log(arrow_head .. ">", msg, "start")
+
       local t = htime()
       f()
-      log("<---", msg, "stop:", (htime() - t) / (1000 * 1000))
+      local stop_time = htime() - t
+
+      log("<" .. arrow_head, msg, "stop:", stop_time / (1000 * 1000))
+      level = level - 1
    end
 else
    log = function()
