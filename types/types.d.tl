@@ -41,6 +41,7 @@ global record vim
       static: string
     end
 
+    buflisted: function(integer): integer
     executable: function(string): integer
     exists: function(string): integer
     fnamemodify: function(string, string): string
@@ -114,13 +115,15 @@ global record vim
 
     nvim_create_namespace: function(string): NSId
 
-    nvim_create_buf: function(boolean, boolean): BufNr
-    nvim_buf_get_option: function(BufNr, string): any
-    nvim_buf_get_lines: function(BufNr, integer, integer, boolean): {string}
-    nvim_buf_set_lines: function(BufNr, integer, integer, boolean, {string})
-    nvim_buf_set_text: function(BufNr, integer, integer, integer, integer, {string})
     nvim_buf_add_highlight: function(BufNr, NSId, string, integer, integer, integer)
     nvim_buf_clear_namespace: function(BufNr, NSId, integer, integer)
+    nvim_buf_get_lines: function(BufNr, integer, integer, boolean): {string}
+    nvim_buf_get_name: function(BufNr): string
+    nvim_buf_get_option: function(BufNr, string): any
+    nvim_buf_set_lines: function(BufNr, integer, integer, boolean, {string})
+    nvim_buf_set_text: function(BufNr, integer, integer, integer, integer, {string})
+    nvim_create_buf: function(boolean, boolean): BufNr
+    nvim_list_bufs: function(): {BufNr}
 
     nvim_open_win: function(BufNr, boolean, OpenWinOptions): WinNr
     nvim_win_close: function(WinNr, boolean)

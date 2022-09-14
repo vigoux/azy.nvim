@@ -14,6 +14,9 @@ local Sources = {FilesOptions = {}, }
 
 
 
+
+
+
 local function is_ignored(path, patterns)
    for _, p in ipairs(patterns) do
       if p:match_str(path) then
@@ -52,7 +55,7 @@ local function iter_files(paths, show_hidden, ignored_patterns)
                return nil
             end
          elseif not (vim.startswith(next_path, '.') and not show_hidden) then
-            local full_path = vim.fn.fnamemodify(utils.path_join(path, next_path), ":~:.")
+            local full_path = utils.path.shorten(utils.path.join(path, next_path))
             if path_type == 'directory' then
                table.insert(path_stack, full_path)
             elseif not is_ignored(full_path, ignored_patterns) then
@@ -82,7 +85,7 @@ function Sources.files(paths, config)
    local ignored = vim.tbl_map(function(e) return vim.regex(e) end, config.ignored_patterns or {})
    local ok, gitdir = pcall(utils.git, "rev-parse", "--show-toplevel")
    if ok and #gitdir == 1 then
-      read_ignore_file(ignored, utils.path_join(gitdir[1], ".gitignore"))
+      read_ignore_file(ignored, utils.path.join(gitdir[1], ".gitignore"))
    end
    read_ignore_file(ignored, ".ignore")
 
@@ -96,6 +99,7 @@ function Sources.files(paths, config)
    return ret
 end
 
+
 function Sources.help()
    local ret = {}
    for _, hpath in ipairs(vim.api.nvim_get_runtime_file("doc/tags", true)) do
@@ -104,6 +108,22 @@ function Sources.help()
          for line, _ in function() return file:read() end do
             local tag = vim.split(line, "\t", { plain = true })[1]
             table.insert(ret, { search_text = tag })
+         end
+      end
+   end
+
+   return ret
+end
+
+function Sources.buffers()
+   local bufs = vim.api.nvim_list_bufs()
+   local ret = {}
+
+   for _, bnr in ipairs(bufs) do
+      if vim.fn.buflisted(bnr) == 1 then
+         local bname = vim.api.nvim_buf_get_name(bnr)
+         if bname and #bname > 0 then
+            table.insert(ret, { search_text = bname })
          end
       end
    end

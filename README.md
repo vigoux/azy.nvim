@@ -1,6 +1,6 @@
 # `azy.nvim` incremental picker based of `fzy`
 
-This plugin provides a simple UI to selected an item from a list.
+This plugin provides a simple UI to selecte an item from a list.
 It is very much my own version of the multitude of plugins like
 [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim).
 
@@ -15,15 +15,16 @@ use { 'vigoux/azy.nvim', requires = { 'vigoux/fzy-lua-native', run = 'make' } }
 ## Usage
 
 This plugin provides a bunch of builtin searchs.
-These builtin functions return a functions suitable for
+These builtin functions return a function suitable for
 `vim.keymap.set` when called, so that one can do the following:
 ```lua
   vim.keymap.set("n", "<Leader>e", require'azy.builtins'.files(), {})
 ```
 
 The available functions are:
-- `require'azy.builtins'.files(paths)`: search for local files under `paths`. This respects both the local `.gitignore` file and `.ignore`.
-- `require'azy.builtins'.help()`: search in the help, open the selected tag on confirm
+- `azy.builtins.files(paths)`: files under `paths`. Respects both the local `.gitignore` file and `.ignore`.
+- `azy.builtins.help()`: help tags, opens the selected tag on confirm
+- `azy.builtins.buffers()`: opened buffers
 
 ## Performances
 

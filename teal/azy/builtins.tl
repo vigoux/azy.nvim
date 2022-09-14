@@ -18,4 +18,10 @@ function Builtins.help(): function()
   end
 end
 
+function Builtins.buffers(): function()
+  return function()
+    ui.create(sources.buffers(), sinks.open_file)
+  end
+end
+
 return Builtins
