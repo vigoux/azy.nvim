@@ -36,7 +36,7 @@ else
    end
 end
 
-
+local AzyLine = {}
 
 
 
@@ -101,13 +101,13 @@ local AzyUi = {}
 
 
 
+
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
    AzyUi._search_result_cache = {}
    AzyUi._current_prompt = nil
-   AzyUi._selected = nil
 
    AzyUi._search_text_cache = {}
    local all_lines = {}
@@ -183,6 +183,7 @@ function AzyUi.create(content, callback)
    vim.keymap.set({ "n", "i" }, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
    vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
+   AzyUi._selected = 1
    AzyUi._running = true
    AzyUi._update_output_buf()
    vim.cmd.startinsert()
@@ -191,27 +192,54 @@ end
 function AzyUi.confirm()
    AzyUi._close()
    if AzyUi._selected then
-      AzyUi._callback(AzyUi._selected.content)
+      AzyUi._callback(AzyUi._selected_item().content)
    end
    AzyUi._destroy()
 end
 
-function AzyUi.next()
-   local res = AzyUi._choices:next()
+function AzyUi._selected_item()
+   local res = AzyUi._choices:selected()
    if res then
-      AzyUi._selected = AzyUi._search_text_cache[res]
+      return AzyUi._search_text_cache[res]
    else
+      return AzyUi._source_lines[AzyUi._selected]
    end
-   AzyUi._redraw()
+end
+
+local function wrap_around(position)
+   return position % #AzyUi._source_lines
+end
+
+function AzyUi.next()
+   if not AzyUi._choices:next() then
+      local before = AzyUi._selected
+      AzyUi._selected = wrap_around(before + 1)
+      AzyUi._redraw_lines({ AzyUi._selected, before })
+   else
+      time_this("Slow next", function()
+         for i = 1, #AzyUi._current_lines do
+            if AzyUi._selected_item() == AzyUi._current_lines[i] then
+               AzyUi._redraw_lines({ i, wrap_around(i - 1) })
+            end
+         end
+      end)
+   end
 end
 
 function AzyUi.prev()
-   local res = AzyUi._choices:prev()
-   if res then
-      AzyUi._selected = AzyUi._search_text_cache[res]
+   if not AzyUi._choices:prev() then
+      local before = AzyUi._selected
+      AzyUi._selected = wrap_around(before - 1)
+      AzyUi._redraw_lines({ AzyUi._selected, before })
    else
+      time_this("Slow prev", function()
+         for i = 1, #AzyUi._current_lines do
+            if AzyUi._selected_item() == AzyUi._current_lines[i] then
+               AzyUi._redraw_lines({ i, wrap_around(i + 1) })
+            end
+         end
+      end)
    end
-   AzyUi._redraw()
 end
 
 function AzyUi._close()
@@ -261,13 +289,10 @@ function AzyUi._update_output_buf()
             end)
 
             time_this("Insert", function()
-               local hlpos = {}
                local clines = {}
 
                for i = 1, #result do
-                  local r = result[i]
-                  clines[i] = AzyUi._search_text_cache[r[1]]
-                  hlpos[i] = r[2]
+                  clines[i] = AzyUi._search_text_cache[result[i][1]]
                end
                AzyUi._current_lines = clines
             end)
@@ -279,9 +304,6 @@ function AzyUi._update_output_buf()
       end
 
       AzyUi._current_prompt = iline
-
-      AzyUi._selected = AzyUi._current_lines[1]
-
       AzyUi._redraw()
    end)
 end
@@ -291,11 +313,13 @@ function AzyUi._redraw()
       local lines_to_draw = {}
       vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
 
+
+
       local sel_line = 0
       local hl_offset = 0
       time_this("Build lines", function()
          for i, line in ipairs(AzyUi._current_lines) do
-            local line_selected = line == AzyUi._selected
+            local line_selected = line == AzyUi._selected_item()
             if line_selected then
                sel_line = i
             end
@@ -323,14 +347,14 @@ end
 function AzyUi._redraw_lines(lines)
    for _, i in ipairs(lines) do
       if AzyUi._current_lines[i] then
-         local fmt, off = format_line(AzyUi._current_lines[i],
-         AzyUi._current_lines[i] == AzyUi._selected)
+         local is_selected = AzyUi._current_lines[i] == AzyUi._selected_item()
+         local fmt, off = format_line(AzyUi._current_lines[i], is_selected)
 
          if off ~= AzyUi._hl_offset then
             error("Inconsistent highlight offset")
          end
 
-         if AzyUi._current_lines[i] == AzyUi._selected then
+         if is_selected then
             vim.api.nvim_win_set_cursor(AzyUi._output_win, { i, 0 })
          end
 
