@@ -1,2 +1,2 @@
 *.tl linguist-language=Lua
-lua/** linguist-generated
+lua/azy/** linguist-generated
