@@ -96,6 +96,23 @@ global record vim
       nested: boolean|nil
     end
 
+    record DecorationProvider
+      on_start: function(string, integer): boolean
+      on_buf: function(string, BufNr, integer): boolean
+      on_win: function(string, WinNr, BufNr, integer, integer): boolean
+      on_line: function(string, WinNr, BufNr, integer): boolean
+      on_end: function(string, integer): boolean
+    end
+
+    record SetExtmarkOptions
+      id: integer
+      end_row: integer
+      end_col: integer
+      hl_group: string
+      hl_mode: string
+      ephemeral: boolean
+    end
+
     type BufNr = integer
     type WinNr = integer
     type NSId = integer
@@ -122,6 +139,7 @@ global record vim
     nvim_buf_get_option: function(BufNr, string): any
     nvim_buf_set_lines: function(BufNr, integer, integer, boolean, {string})
     nvim_buf_set_text: function(BufNr, integer, integer, integer, integer, {string})
+    nvim_buf_set_extmark: function(BufNr, NSId, integer, integer, SetExtmarkOptions)
     nvim_create_buf: function(boolean, boolean): BufNr
     nvim_list_bufs: function(): {BufNr}
 
@@ -132,6 +150,8 @@ global record vim
     nvim_win_set_cursor: function(WinNr, {integer, integer})
     nvim_win_get_cursor: function(WinNr): {integer, integer}
     nvim_win_is_valid: function(WinNr): boolean
+
+    nvim_set_decoration_provider: function(NSId, DecorationProvider)
   end
 
   record lsp

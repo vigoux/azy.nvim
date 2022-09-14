@@ -2,8 +2,6 @@ local fzy = require('fzy-lua-native')
 local AUGROUP_NAME = "AzyUi"
 local hl_ns = vim.api.nvim_create_namespace('azy')
 
-local add_highlight = vim.api.nvim_buf_add_highlight
-
 local log
 local time_this
 
@@ -64,6 +62,9 @@ local function format_line(line, selected)
 end
 
 local AzyUi = {}
+
+
+
 
 
 
@@ -175,6 +176,7 @@ function AzyUi.create(content, callback)
    vim.keymap.set({ "n", "i" }, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
    vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
+   AzyUi._running = true
    AzyUi._update_output_buf()
    vim.cmd.startinsert()
 end
@@ -207,6 +209,7 @@ function AzyUi.prev()
 end
 
 function AzyUi._close()
+   AzyUi._running = false
    vim.cmd.stopinsert()
    if vim.api.nvim_win_is_valid(AzyUi._input_win) then
       vim.api.nvim_win_close(AzyUi._input_win, true)
@@ -321,22 +324,14 @@ function AzyUi._redraw()
          end
       end)
 
-
-
-      vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, lines_to_draw)
+      time_this("Set lines", function()
+         AzyUi._hl_offset = hl_offset
+         vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, lines_to_draw)
+      end)
 
       if sel_line ~= 0 then
          vim.api.nvim_win_set_cursor(AzyUi._output_win, { sel_line, 0 })
       end
-
-      time_this("Highlight", function()
-         for i, hls in ipairs(AzyUi._hl_positions) do
-            for _, hl in ipairs(hls) do
-
-               add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1 + hl_offset, hl + hl_offset)
-            end
-         end
-      end)
    end)
 end
 
@@ -346,17 +341,50 @@ function AzyUi._redraw_lines(lines)
          local fmt, off = format_line(AzyUi._current_lines[i],
          AzyUi._current_lines[i] == AzyUi._selected)
 
+         if off ~= AzyUi._hl_offset then
+            error("Inconsistent highlight offset")
+         end
+
          if AzyUi._current_lines[i] == AzyUi._selected then
             vim.api.nvim_win_set_cursor(AzyUi._output_win, { i, 0 })
          end
 
          vim.api.nvim_buf_set_lines(AzyUi._output_buf, i - 1, i, true, { fmt })
-         for _, hl in ipairs(AzyUi._hl_positions[i] or {}) do
-
-            add_highlight(AzyUi._output_buf, hl_ns, "Error", i - 1, hl - 1 + off, hl + off)
-         end
       end
    end
 end
+
+local set_extmark = vim.api.nvim_buf_set_extmark
+
+local function on_line(_, _, buf, row)
+   local off = AzyUi._hl_offset
+   for _, hl in ipairs(AzyUi._hl_positions[row + 1] or {}) do
+
+      set_extmark(buf, hl_ns, row, hl - 1 + off, {
+         end_col = hl + off,
+         hl_group = "Error",
+         ephemeral = true,
+      })
+   end
+end
+
+local function on_start()
+   return AzyUi._running
+end
+
+local function on_win(_, win)
+   return win == AzyUi._output_win
+end
+
+local function on_buf(_, buf)
+   return buf == AzyUi._output_buf
+end
+
+vim.api.nvim_set_decoration_provider(hl_ns, {
+   on_start = on_start,
+   on_buf = on_buf,
+   on_win = on_win,
+   on_line = on_line,
+})
 
 return AzyUi
