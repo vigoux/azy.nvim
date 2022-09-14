@@ -88,7 +88,6 @@ local record AzyUi
   _current_lines: {AzyLine}
   _hl_offset: integer
 
-  _search_result_cache: {string: {AzyLine}}
   _search_text_cache: {string:AzyLine}
 
   _input_buf: vim.api.BufNr
@@ -106,8 +105,7 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   log("Creating with", #content, "elements")
   vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
   AzyUi._callback = callback or function(i: AzyElement) vim.notify(i.search_text) end
-  AzyUi._search_result_cache = {}
-  AzyUi._current_prompt = nil
+  AzyUi._current_prompt = ""
 
   AzyUi._search_text_cache = {}
   local all_lines = {}
@@ -185,7 +183,8 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
 
   AzyUi._selected = 1
   AzyUi._running = true
-  AzyUi._update_output_buf()
+  AzyUi._current_lines = AzyUi._source_lines
+  AzyUi._redraw()
   vim.cmd.startinsert()
 end
 
@@ -207,39 +206,35 @@ function AzyUi._selected_item(): AzyLine
 end
 
 local function wrap_around(position: integer): integer
- return position % #AzyUi._source_lines
+ return ((position - 1) % #AzyUi._current_lines) + 1
+end
+
+local function pick(msg: string, direction: integer, move_choices: function(): string)
+  if #AzyUi._current_prompt == 0 or not move_choices() then
+    log "Really"
+    local before = AzyUi._selected
+    AzyUi._selected = wrap_around(before + direction)
+    AzyUi._redraw_lines { AzyUi._selected, before }
+  else
+    time_this("Slow " .. msg, function()
+      local selected = AzyUi._selected_item()
+      for i = 1,#AzyUi._current_lines do
+        if selected == AzyUi._current_lines[i] then
+          AzyUi._selected = i
+          AzyUi._redraw_lines { i, wrap_around(i - direction) }
+          return
+        end
+      end
+    end)
+  end
 end
 
 function AzyUi.next()
-  if not AzyUi._choices:next() then
-    local before = AzyUi._selected
-    AzyUi._selected = wrap_around(before + 1)
-    AzyUi._redraw_lines { AzyUi._selected, before }
-  else
-    time_this("Slow next", function()
-      for i = 1,#AzyUi._current_lines do
-        if AzyUi._selected_item() == AzyUi._current_lines[i] then
-          AzyUi._redraw_lines { i, wrap_around(i - 1) }
-        end
-      end
-    end)
-  end
+  pick("next", 1, function(): string return AzyUi._choices:next() end)
 end
 
 function AzyUi.prev()
-  if not AzyUi._choices:prev() then
-    local before = AzyUi._selected
-    AzyUi._selected = wrap_around(before - 1)
-    AzyUi._redraw_lines { AzyUi._selected, before }
-  else
-    time_this("Slow prev", function()
-      for i = 1,#AzyUi._current_lines do
-        if AzyUi._selected_item() == AzyUi._current_lines[i] then
-          AzyUi._redraw_lines { i, wrap_around(i + 1) }
-        end
-      end
-    end)
-  end
+  pick("prev", -1, function(): string return AzyUi._choices:prev() end)
 end
 
 function AzyUi._close()
@@ -261,7 +256,6 @@ end
 function AzyUi._destroy()
   log "Destroying"
   AzyUi._current_lines = {}
-  AzyUi._search_result_cache = {}
   AzyUi._search_text_cache = {}
   AzyUi._source_lines = {}
   AzyUi._choices = nil
@@ -279,26 +273,19 @@ function AzyUi._update_output_buf()
 
   time_this("Update", function()
     if #iline > 0 then
-      local cached = AzyUi._search_result_cache[iline]
-      if cached then
-        AzyUi._current_lines = cached
-      else
-        local result: {{string, number}}
-        time_this("Filter", function()
-          result = AzyUi._choices:search(iline)
-        end)
+      local result: {{string, number}}
+      time_this("Filter", function()
+        result = AzyUi._choices:search(iline)
+      end)
 
-        time_this("Insert", function()
-          local clines = {}
-          -- For each filtered line, find the corresponding source line
-          for i = 1,#result do
-            clines[i] = AzyUi._search_text_cache[result[i][1]]
-          end
-          AzyUi._current_lines = clines
-        end)
-
-        AzyUi._search_result_cache[iline] = AzyUi._current_lines
-      end
+      time_this("Insert", function()
+        local clines = {}
+        -- For each filtered line, find the corresponding source line
+        for i = 1,#result do
+          clines[i] = AzyUi._search_text_cache[result[i][1]]
+        end
+        AzyUi._current_lines = clines
+      end)
     else
       AzyUi._current_lines = AzyUi._source_lines
     end
