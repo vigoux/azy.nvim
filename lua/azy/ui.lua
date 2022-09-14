@@ -182,7 +182,8 @@ function AzyUi.create(content, callback)
 end
 
 function AzyUi._pick_next(direction)
-   for i, sline in ipairs(AzyUi._current_lines) do
+   for i = 1, #AzyUi._current_lines do
+      local sline = AzyUi._current_lines[i]
       local next_item = AzyUi._current_lines[i + direction]
       if sline == AzyUi._selected and next_item then
          AzyUi._selected = next_item
@@ -252,9 +253,12 @@ function AzyUi._update_output_buf()
          else
             local result
             time_this("Filter", function()
-               result = fzy.filter(iline, vim.tbl_map(function(e)
-                  return e.content.search_text
-               end, AzyUi._current_lines), false)
+               local lines = {}
+               local clines = AzyUi._current_lines
+               for i = 1, #clines do
+                  lines[i] = clines[i].content.search_text
+               end
+               result = fzy.filter(iline, lines, false)
             end)
 
             time_this("Sort", function()
@@ -268,14 +272,16 @@ function AzyUi._update_output_buf()
             end)
 
             time_this("Insert", function()
-               AzyUi._current_lines = {}
-               AzyUi._hl_positions = {}
+               local hlpos = {}
+               local clines = {}
 
-               for _, r in ipairs(result) do
-                  local source_line = AzyUi._search_text_cache[r[1]]
-                  table.insert(AzyUi._current_lines, source_line)
-                  table.insert(AzyUi._hl_positions, r[2])
+               for i = 1, #result do
+                  local r = result[i]
+                  clines[i] = AzyUi._search_text_cache[r[1]]
+                  hlpos[i] = r[2]
                end
+               AzyUi._current_lines = clines
+               AzyUi._hl_positions = hlpos
             end)
 
             AzyUi._search_result_cache[iline] = { AzyUi._current_lines, AzyUi._hl_positions }
@@ -320,7 +326,7 @@ function AzyUi._redraw()
             elseif hl_offset ~= off then
                error("Inconsistent highlight offset")
             end
-            table.insert(lines_to_draw, l)
+            lines_to_draw[i] = l
          end
       end)
 
