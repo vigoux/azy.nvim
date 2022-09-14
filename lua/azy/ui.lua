@@ -1,4 +1,5 @@
 local fzy = require('fzy-lua-native')
+local AUGROUP_NAME = "AzyUi"
 local hl_ns = vim.api.nvim_create_namespace('azy')
 
 local add_highlight = vim.api.nvim_buf_add_highlight
@@ -94,12 +95,15 @@ local AzyUi = {}
 
 
 
+
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
+   vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
    AzyUi._hl_positions = {}
    AzyUi._search_result_cache = {}
    AzyUi._search_text_cache = {}
+   AzyUi._current_prompt = nil
    AzyUi._source_lines = vim.tbl_map(function(e)
       local toel
       if type(e) == "string" then
@@ -151,12 +155,14 @@ function AzyUi.create(content, callback)
    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
       buffer = AzyUi._input_buf,
       callback = AzyUi._update_output_buf,
+      group = AUGROUP_NAME,
    })
 
 
    vim.api.nvim_create_autocmd({ "BufUnload", "BufDelete", "BufWipeout", "BufLeave" }, {
       buffer = AzyUi._input_buf,
       callback = AzyUi._close,
+      group = AUGROUP_NAME,
    })
 
 
@@ -225,10 +231,16 @@ function AzyUi._destroy()
 end
 
 function AzyUi._update_output_buf()
+   local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
+
+   if AzyUi._current_prompt and AzyUi._current_prompt == iline then
+
+
+
+      return
+   end
 
    time_this("Update", function()
-
-      local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
       if #iline > 0 then
          local cached = AzyUi._search_result_cache[iline]
          if cached then
@@ -269,6 +281,8 @@ function AzyUi._update_output_buf()
          AzyUi._current_lines = AzyUi._source_lines
          AzyUi._hl_positions = {}
       end
+
+      AzyUi._current_prompt = iline
 
       time_this("Cursor correction", function()
 
