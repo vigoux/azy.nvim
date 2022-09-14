@@ -40,7 +40,10 @@ If that is the case, feel free to report an issue with the list of
 entries that caused the problem, and what you did when encountering
 the problem, and I'll be glad to look into it.
 
-Note though that on reasonably sized word lists (10K-ish entries), you
+Note though that on reasonably sized word lists, you
 should not encounter any problem.
+
+But for the record, it took (on my machine) approximately 1s to filter
+a 400K entries list to `azy.nvim`.
 
 [telescope.nvim]: https://github.com/nvim-telescope/telescope.nvim
