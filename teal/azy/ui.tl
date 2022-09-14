@@ -5,7 +5,8 @@ local hl_ns = vim.api.nvim_create_namespace 'azy'
 local log: function(...: any)
 local time_this: function(string, function())
 
-if vim.fn.exists "g:azy_ui_debug" == 1 then
+local DEBUG = vim.fn.exists "g:azy_ui_debug" == 1
+if DEBUG then
   print("AzyUi debugging enabled")
   log = function(...: any)
     print("AzyUi:", ...)
@@ -260,7 +261,7 @@ function AzyUi._update_output_buf()
         time_this("Sort", function()
           table.sort(result, function(a: {string, integer}, b: {string, integer}): boolean
             if a[2] == b[2] then
-              return #a[1] > #b[1]
+              return #a[1] < #b[1]
             else
               return a[2] > b[2]
             end
@@ -359,12 +360,22 @@ local set_extmark = vim.api.nvim_buf_set_extmark
 local function on_line(_: string, _: vim.api.WinNr, buf: vim.api.BufNr, row: integer): boolean
   local off = AzyUi._hl_offset
   local line: AzyLine = AzyUi._current_lines[row + 1]
+  if not line then return end
+
+  local score = fzy.score(AzyUi._current_prompt, line.content.search_text, false)
+  if DEBUG and AzyUi._current_prompt and #AzyUi._current_prompt > 0 then
+    set_extmark(buf, hl_ns, row, 0, {
+      ephemeral = true,
+      virt_text = { { tostring(score), "Comment" } },
+      virt_text_pos = "right_align"
+    })
+  end
   for _,hl in ipairs(fzy.positions(AzyUi._current_prompt, line.content.search_text, false)) do
     -- The highlight is offset by two characters
     set_extmark(buf, hl_ns, row, hl - 1 + off, {
       end_col = hl + off,
       hl_group = "Error",
-      ephemeral = true
+      ephemeral = true,
     })
   end
 end

@@ -111,6 +111,8 @@ global record vim
       hl_group: string
       hl_mode: string
       ephemeral: boolean
+      virt_text: {{string, string}}
+      virt_text_pos: string
     end
 
     type BufNr = integer
