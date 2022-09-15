@@ -16,16 +16,25 @@ if DEBUG then
 
    local level = 0
    time_this = function(msg, f)
-      level = level + 1
-      local arrow_head = vim.fn['repeat']('-', level)
-      log(arrow_head .. ">", msg, "start")
+      local arrow_head
+      if level > 0 then
+         arrow_head = vim.fn['repeat'](' ', 2 * level - 1)
+         log(arrow_head, msg)
+      else
+         log(msg)
+      end
 
+      level = level + 1
       local t = htime()
       f()
       local stop_time = htime() - t
-
-      log("<" .. arrow_head, msg, "stop:", stop_time / (1000 * 1000))
       level = level - 1
+
+      if level > 0 then
+         log(arrow_head, msg, ":", stop_time / (1000 * 1000))
+      else
+         log(msg, ":", stop_time / (1000 * 1000))
+      end
    end
 else
    log = function()
