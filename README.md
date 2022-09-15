@@ -10,6 +10,15 @@ configurability.
 
 ## Installation
 
+As this plugin requires the compilation of a small C library, you will
+have to have the following system dependencies:
+- A `C` compiler in your path, to compile the library
+- `pkg-config`, to search for the dependencies
+- `luajit` and it's headers (`libluajit-5.1-dev` on Ubuntu), to
+  link against it
+- `libpthread` and it's headers (intalled by default on Ubuntu),
+  that's a dependency to build `fzy`.
+
 Using `packer.nvim`:
 
 ```lua
