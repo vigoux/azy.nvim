@@ -259,10 +259,10 @@ function AzyUi._redraw()
     local selected_text, current_selection = AzyUi._choices:selected()
     current_selection = current_selection or 1
     if current_selection > HEIGHT then
-      start = current_selection - HEIGHT
+      start = current_selection - HEIGHT + 1
       local available: integer = AzyUi._choices:available()
-      if start + HEIGHT >= available and available > 0 then
-        start = available - HEIGHT
+      if start + HEIGHT > available and available > 0 then
+        start = available - HEIGHT + 1
       end
     end
 
