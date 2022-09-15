@@ -113,6 +113,7 @@ global record vim
       ephemeral: boolean
       virt_text: {{string, string}}
       virt_text_pos: string
+      virt_lines: {{{string, string}}}
     end
 
     type BufNr = integer

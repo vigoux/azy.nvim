@@ -106,21 +106,29 @@ static int fzy_choices_search(lua_State *L)
   return 1;
 }
 
-static void push_selected(lua_State *L, choices_t* c)
+static int push_item(lua_State *L, choices_t *c, size_t index)
 {
-  if (c->available) {
-    lua_pushstring(L, choices_get(c, c->selection));
+  const char * item = choices_get(c, index);
+  if (item) {
+    lua_pushstring(L, item);
+    lua_pushinteger(L, c->selection + 1);
   } else {
     lua_pushnil(L);
+    lua_pushnil(L);
   }
+  return 2;
+}
+
+static int push_selected(lua_State *L, choices_t *c)
+{
+  return push_item(L, c, c->selection);
 }
 
 static int fzy_choices_selected(lua_State *L)
 {
   choices_ud_t * c = fzy_choices_check(L, 1);
 
-  push_selected(L, &c->choices);
-  return 1;
+  return push_selected(L, &c->choices);
 }
 
 static int fzy_choices_next(lua_State *L)
@@ -128,8 +136,7 @@ static int fzy_choices_next(lua_State *L)
   choices_ud_t * c = fzy_choices_check(L, 1);
   choices_next(&c->choices);
 
-  push_selected(L, &c->choices);
-  return 1;
+  return push_selected(L, &c->choices);
 }
 
 static int fzy_choices_prev(lua_State *L)
@@ -137,7 +144,19 @@ static int fzy_choices_prev(lua_State *L)
   choices_ud_t * c = fzy_choices_check(L, 1);
   choices_prev(&c->choices);
 
-  push_selected(L, &c->choices);
+  return push_selected(L, &c->choices);
+}
+
+static int fzy_choices_get(lua_State *L)
+{
+  choices_ud_t * c = fzy_choices_check(L, 1);
+  int choice = luaL_checkint(L, 2);
+  if (choice < 1) {
+    return luaL_argerror(L, 2, "Expected a number greater than 1");
+  }
+
+  push_item(L, &c->choices, (size_t)(choice - 1)); // [elem, index]
+  lua_pop(L, 1); // [elem]
   return 1;
 }
 
@@ -173,6 +192,7 @@ static struct luaL_Reg choices_meta[] = {
   { "selected", fzy_choices_selected },
   { "next", fzy_choices_next },
   { "prev", fzy_choices_prev },
+  { "get", fzy_choices_get },
   { "__gc", fzy_choices_gc },
   { NULL, NULL }
 };

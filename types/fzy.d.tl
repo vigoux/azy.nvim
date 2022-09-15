@@ -3,9 +3,10 @@ local record Fzy
     add: function(Choices, {string})
     available: function(Choices): integer
     search: function(Choices, string): {{string, number}}
-    selected: function(Choices): string
-    next: function(Choices): string
-    prev: function(Choices): string
+    selected: function(Choices): string, integer
+    next: function(Choices): string, integer
+    prev: function(Choices): string, integer
+    get: function(Choices, integer): string
   end
 
   create: function(): Choices

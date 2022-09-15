@@ -5,6 +5,7 @@ local hl_ns = vim.api.nvim_create_namespace('azy')
 local log
 local time_this
 
+local HEIGHT = 20
 local DEBUG = vim.fn.exists("g:azy_ui_debug") == 1
 if DEBUG then
    print("AzyUi debugging enabled")
@@ -103,12 +104,6 @@ local AzyUi = {}
 
 
 
-
-
-
-
-
-
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
@@ -139,8 +134,7 @@ function AzyUi.create(content, callback)
    local columns = vim.o.columns
    local lines = vim.o.lines
 
-   local display_height = 20
-   local input_row = lines - (display_height + 2)
+   local input_row = lines - (HEIGHT + 2)
 
    AzyUi._input_win = vim.api.nvim_open_win(AzyUi._input_buf, true, {
       relative = 'editor',
@@ -159,7 +153,7 @@ function AzyUi.create(content, callback)
       relative = 'editor',
       anchor = 'NW',
       width = columns,
-      height = display_height,
+      height = HEIGHT,
       row = input_row + 1,
       col = 0,
       focusable = false,
@@ -189,37 +183,28 @@ function AzyUi.create(content, callback)
    vim.keymap.set({ "n", "i" }, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
    vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
-   AzyUi._selected = 1
    AzyUi._running = true
-   AzyUi._current_lines = AzyUi._source_lines
    AzyUi._redraw()
    vim.cmd.startinsert()
 end
 
 function AzyUi.confirm()
    AzyUi._close()
-   if AzyUi._selected then
-      AzyUi._callback(AzyUi._current_lines[AzyUi._selected].content)
+   local selected = AzyUi._choices:selected()
+   if selected then
+      AzyUi._callback(AzyUi._search_text_cache[selected].content)
    end
    AzyUi._destroy()
 end
 
-local function wrap_around(position)
-   return ((position - 1) % #AzyUi._current_lines) + 1
-end
-
-local function pick(direction)
-   local before = AzyUi._selected
-   AzyUi._selected = wrap_around(before + direction)
-   AzyUi._redraw_lines({ AzyUi._selected, before })
-end
-
 function AzyUi.next()
-   pick(1)
+   AzyUi._choices:next()
+   AzyUi._redraw()
 end
 
 function AzyUi.prev()
-   pick(-1)
+   AzyUi._choices:prev()
+   AzyUi._redraw()
 end
 
 function AzyUi._close()
@@ -240,7 +225,6 @@ end
 
 function AzyUi._destroy()
    log("Destroying")
-   AzyUi._current_lines = {}
    AzyUi._search_text_cache = {}
    AzyUi._source_lines = {}
    AzyUi._choices = nil
@@ -258,130 +242,96 @@ function AzyUi._update_output_buf()
 
    time_this("Update", function()
       if #iline > 0 then
-         local result
          time_this("Filter", function()
-            result = AzyUi._choices:search(iline)
+            AzyUi._choices:search(iline)
          end)
-
-         time_this("Insert", function()
-            local clines = {}
-
-            for i = 1, #result do
-               clines[i] = AzyUi._search_text_cache[result[i][1]]
-            end
-            AzyUi._current_lines = clines
-         end)
-      else
-         AzyUi._current_lines = AzyUi._source_lines
       end
 
-      AzyUi._selected = 1
       AzyUi._current_prompt = iline
       AzyUi._redraw()
    end)
 end
 
+local set_extmark = vim.api.nvim_buf_set_extmark
 function AzyUi._redraw()
    time_this("Redraw", function()
-      local lines_to_draw = {}
-      vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
+      local start = 1
+      local selected_text, current_selection = AzyUi._choices:selected()
+      current_selection = current_selection or 1
+      if current_selection > HEIGHT then
+         start = current_selection - HEIGHT
+         local available = AzyUi._choices:available()
+         if start + HEIGHT >= available and available > 0 then
+            start = available - HEIGHT
+         end
+      end
 
+      local function for_each_displayed_line(func)
+         if AzyUi._choices:available() == 0 and #AzyUi._current_prompt > 0 then
+            return
+         end
 
-
-      local sel_line = 0
-      local hl_offset = 0
-      time_this("Build lines", function()
-         for i, line in ipairs(AzyUi._current_lines) do
-            local line_selected = i == AzyUi._selected
-            if line_selected then
-               sel_line = i
+         for i = start, start + HEIGHT do
+            local line
+            if #AzyUi._current_prompt == 0 then
+               line = AzyUi._source_lines[i]
+            else
+               line = AzyUi._search_text_cache[AzyUi._choices:get(i)]
             end
-            local l, off = format_line(line, line_selected)
+
+            if line then
+               func(line, i - start + 1)
+            else
+               break
+            end
+         end
+      end
+
+      local lines_to_draw = {}
+
+
+      local hl_offset = 0
+      local selected = AzyUi._search_text_cache[selected_text] or AzyUi._source_lines[1]
+      time_this("Build lines", function()
+         for_each_displayed_line(function(line)
+            local l, off = format_line(line, line == selected)
             if hl_offset == 0 then
                hl_offset = off
             elseif hl_offset ~= off then
                error("Inconsistent highlight offset")
             end
-            lines_to_draw[i] = l
-         end
+            lines_to_draw[#lines_to_draw + 1] = l
+         end)
       end)
 
       time_this("Set lines", function()
-         AzyUi._hl_offset = hl_offset
          vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, lines_to_draw)
       end)
 
-      if sel_line ~= 0 then
-         vim.api.nvim_win_set_cursor(AzyUi._output_win, { sel_line, 0 })
-      end
+      time_this("Highlight lines", function()
+         vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
+         for_each_displayed_line(function(line, row)
+            local score, positions = fzy.match(AzyUi._current_prompt, line.content.search_text)
+            if not score then
+               error("Inconsistent state")
+            end
+
+            if DEBUG and AzyUi._current_prompt and #AzyUi._current_prompt > 0 then
+               set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
+                  virt_text = { { tostring(score), "Comment" } },
+                  virt_text_pos = "right_align",
+               })
+            end
+            for _, hl in ipairs(positions) do
+
+               set_extmark(AzyUi._output_buf, hl_ns, row - 1, hl - 1 + hl_offset, {
+                  end_col = hl + hl_offset,
+                  hl_group = "Error",
+               })
+            end
+         end)
+      end)
    end)
 end
-
-function AzyUi._redraw_lines(lines)
-   for _, i in ipairs(lines) do
-      if AzyUi._current_lines[i] then
-         local is_selected = i == AzyUi._selected
-         local fmt, off = format_line(AzyUi._current_lines[i], is_selected)
-
-         if off ~= AzyUi._hl_offset then
-            error("Inconsistent highlight offset")
-         end
-
-         if is_selected then
-            vim.api.nvim_win_set_cursor(AzyUi._output_win, { i, 0 })
-         end
-
-         vim.api.nvim_buf_set_lines(AzyUi._output_buf, i - 1, i, true, { fmt })
-      end
-   end
-end
-
-local set_extmark = vim.api.nvim_buf_set_extmark
-
-local function on_line(_, _, buf, row)
-   local off = AzyUi._hl_offset
-   local line = AzyUi._current_lines[row + 1]
-   if not line then return end
-
-   local score, positions = fzy.match(AzyUi._current_prompt, line.content.search_text)
-   if not score then
-      error("Inconsistent state")
-   end
-
-   if DEBUG and AzyUi._current_prompt and #AzyUi._current_prompt > 0 then
-      set_extmark(buf, hl_ns, row, 0, {
-         ephemeral = true,
-         virt_text = { { tostring(score), "Comment" } },
-         virt_text_pos = "right_align",
-      })
-   end
-   for _, hl in ipairs(positions) do
-
-      set_extmark(buf, hl_ns, row, hl - 1 + off, {
-         end_col = hl + off,
-         hl_group = "Error",
-         ephemeral = true,
-      })
-   end
-end
-
-local function on_start()
-   return AzyUi._running
-end
-
-local function on_win(_, win)
-   return win == AzyUi._output_win
-end
-
-local function on_buf(_, buf)
-   return buf == AzyUi._output_buf
-end
-
-vim.api.nvim_set_decoration_provider(hl_ns, {
-   on_start = on_start,
-   on_buf = on_buf,
-   on_win = on_win,
-   on_line = on_line,
-})
 
 return AzyUi
