@@ -90,15 +90,12 @@ local record AzyUi
   _redraw: function()
 
   _current_prompt: string|nil
-
   _search_text_cache: {string:AzyLine}
 
   _input_buf: vim.api.BufNr
   _input_win: vim.api.WinNr
   _output_buf: vim.api.BufNr
   _output_win: vim.api.WinNr
-
-  _running: boolean
 
   -- Main part of the thing
   _choices: fzy.Choices
@@ -183,7 +180,6 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   vim.keymap.set({"n", "i"}, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
   vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
-  AzyUi._running = true
   AzyUi._redraw()
   vim.cmd.startinsert()
 end
@@ -208,7 +204,6 @@ function AzyUi.prev()
 end
 
 function AzyUi._close()
-  AzyUi._running = false
   vim.cmd.stopinsert()
   if vim.api.nvim_win_is_valid(AzyUi._input_win) then
     vim.api.nvim_win_close(AzyUi._input_win, true)

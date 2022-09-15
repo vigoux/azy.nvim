@@ -101,9 +101,6 @@ local AzyUi = {}
 
 
 
-
-
-
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
@@ -183,7 +180,6 @@ function AzyUi.create(content, callback)
    vim.keymap.set({ "n", "i" }, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
    vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
-   AzyUi._running = true
    AzyUi._redraw()
    vim.cmd.startinsert()
 end
@@ -208,7 +204,6 @@ function AzyUi.prev()
 end
 
 function AzyUi._close()
-   AzyUi._running = false
    vim.cmd.stopinsert()
    if vim.api.nvim_win_is_valid(AzyUi._input_win) then
       vim.api.nvim_win_close(AzyUi._input_win, true)
