@@ -90,7 +90,6 @@ local record AzyUi
 
   -- Useful to handle cursor navigation and redrawing
   _selected: integer
-  _selected_item: function(): AzyLine
   _redraw_lines: function({integer})
 
   _current_prompt: string|nil
@@ -200,50 +199,27 @@ end
 function AzyUi.confirm()
   AzyUi._close()
   if AzyUi._selected then
-    AzyUi._callback(AzyUi._selected_item().content)
+    AzyUi._callback(AzyUi._current_lines[AzyUi._selected].content)
   end
   AzyUi._destroy()
-end
-
-function AzyUi._selected_item(): AzyLine
-  local res = AzyUi._choices:selected()
-  if res then
-    return AzyUi._search_text_cache[res]
-  else
-    return AzyUi._source_lines[AzyUi._selected]
-  end
 end
 
 local function wrap_around(position: integer): integer
  return ((position - 1) % #AzyUi._current_lines) + 1
 end
 
-local function pick(msg: string, direction: integer, move_choices: function(): string)
-  if #AzyUi._current_prompt == 0 or not move_choices() then
-    log "Really"
-    local before = AzyUi._selected
-    AzyUi._selected = wrap_around(before + direction)
-    AzyUi._redraw_lines { AzyUi._selected, before }
-  else
-    time_this("Slow " .. msg, function()
-      local selected = AzyUi._selected_item()
-      for i = 1,#AzyUi._current_lines do
-        if selected == AzyUi._current_lines[i] then
-          AzyUi._selected = i
-          AzyUi._redraw_lines { i, wrap_around(i - direction) }
-          return
-        end
-      end
-    end)
-  end
+local function pick(direction: integer)
+  local before = AzyUi._selected
+  AzyUi._selected = wrap_around(before + direction)
+  AzyUi._redraw_lines { AzyUi._selected, before }
 end
 
 function AzyUi.next()
-  pick("next", 1, function(): string return AzyUi._choices:next() end)
+  pick(1)
 end
 
 function AzyUi.prev()
-  pick("prev", -1, function(): string return AzyUi._choices:prev() end)
+  pick(-1)
 end
 
 function AzyUi._close()
@@ -299,6 +275,7 @@ function AzyUi._update_output_buf()
       AzyUi._current_lines = AzyUi._source_lines
     end
 
+    AzyUi._selected = 1
     AzyUi._current_prompt = iline
     AzyUi._redraw()
   end)
@@ -315,7 +292,7 @@ function AzyUi._redraw()
     local hl_offset: integer = 0
     time_this("Build lines", function()
       for i, line in ipairs(AzyUi._current_lines) do
-        local line_selected: boolean = line == AzyUi._selected_item()
+        local line_selected: boolean = i == AzyUi._selected
         if line_selected then
           sel_line = i
         end
@@ -343,7 +320,7 @@ end
 function AzyUi._redraw_lines(lines: {integer})
   for _, i in ipairs(lines) do
     if AzyUi._current_lines[i] then
-      local is_selected = AzyUi._current_lines[i] == AzyUi._selected_item()
+      local is_selected = i == AzyUi._selected
       local fmt, off = format_line(AzyUi._current_lines[i], is_selected)
 
       if off ~= AzyUi._hl_offset then
