@@ -123,11 +123,15 @@ function Sources.buffers()
    local ret = {}
 
    for _, bnr in ipairs(bufs) do
-      if vim.fn.buflisted(bnr) == 1 then
-         local infos = vim.fn.getbufinfo(bnr)[1]
-         if infos.name and #infos.name > 0 then
-            ret[#ret + 1] = { search_text = infos.name, extra_infos = { { "lnum:", "Comment" }, { tostring(infos.lnum), "Function" } } }
+      local infos = vim.fn.getbufinfo(bnr)[1]
+      if infos.listed == 1 and infos.name and #infos.name > 0 then
+
+         local extra_infos = { { "lnum:", "Comment" }, { tostring(infos.lnum), "Function" } }
+
+         if infos.changed then
+            table.insert(extra_infos, 1, { "+,", "Comment" })
          end
+         ret[#ret + 1] = { search_text = infos.name, extra_infos = extra_infos }
       end
    end
 

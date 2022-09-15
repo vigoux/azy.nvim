@@ -48,14 +48,14 @@ global record vim
 
     record BufInfo
       bufnr: BufNr
-      changed: boolean
+      changed: integer
       changedtick: integer
-      hidden: boolean
+      hidden: integer
       lastused: integer
-      listed: boolean
+      listed: integer
       lnum: integer
       linecount: integer
-      loaded: boolean
+      loaded: integer
       name: string
     end
 
