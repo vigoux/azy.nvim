@@ -92,10 +92,10 @@ local record AzyUi
   _current_prompt: string|nil
   _search_text_cache: {string:AzyLine}
 
-  _input_buf: vim.api.BufNr
-  _input_win: vim.api.WinNr
-  _output_buf: vim.api.BufNr
-  _output_win: vim.api.WinNr
+  _input_buf: vim.BufNr
+  _input_win: vim.WinNr
+  _output_buf: vim.BufNr
+  _output_win: vim.WinNr
 
   -- Main part of the thing
   _choices: fzy.Choices
@@ -314,6 +314,12 @@ function AzyUi._redraw()
         if DEBUG and AzyUi._current_prompt and #AzyUi._current_prompt > 0 then
           set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
             virt_text = { { tostring(score), "Comment" } },
+          })
+        end
+
+        if line.content.extra_infos then
+          set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
+            virt_text = line.content.extra_infos,
             virt_text_pos = "right_align"
           })
         end

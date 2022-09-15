@@ -1,9 +1,14 @@
 global record AzyElement
   search_text: string
+
+  -- Same as virt_text in buf_set_extmark
+  extra_infos: {{string, string}}
   extra: any
 end
 
 global record vim
+  type BufNr = integer
+  type WinNr = integer
   record o
     lines: integer
     columns: integer
@@ -41,7 +46,21 @@ global record vim
       static: string
     end
 
-    buflisted: function(integer): integer
+    record BufInfo
+      bufnr: BufNr
+      changed: boolean
+      changedtick: integer
+      hidden: boolean
+      lastused: integer
+      listed: boolean
+      lnum: integer
+      linecount: integer
+      loaded: boolean
+      name: string
+    end
+
+    getbufinfo: function(BufNr): {BufInfo}
+    buflisted: function(BufNr): integer
     executable: function(string): integer
     exists: function(string): integer
     fnamemodify: function(string, string): string
@@ -116,8 +135,6 @@ global record vim
       virt_lines: {{{string, string}}}
     end
 
-    type BufNr = integer
-    type WinNr = integer
     type NSId = integer
 
     nvim_feedkeys: function(string, string, boolean)

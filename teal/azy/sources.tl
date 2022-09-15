@@ -124,9 +124,9 @@ function Sources.buffers(): {AzyElement}
 
   for _,bnr in ipairs(bufs) do
     if vim.fn.buflisted(bnr) == 1 then
-      local bname = vim.api.nvim_buf_get_name(bnr)
-      if bname and #bname > 0 then
-        table.insert(ret, { search_text = bname })
+      local infos = vim.fn.getbufinfo(bnr)[1]
+      if infos.name and #infos.name > 0 then
+        ret[#ret + 1] = { search_text = infos.name, extra_infos = { {"lnum:", "Comment"}, { tostring(infos.lnum), "Function" } } }
       end
     end
   end

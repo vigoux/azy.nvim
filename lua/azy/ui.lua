@@ -314,6 +314,12 @@ function AzyUi._redraw()
             if DEBUG and AzyUi._current_prompt and #AzyUi._current_prompt > 0 then
                set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
                   virt_text = { { tostring(score), "Comment" } },
+               })
+            end
+
+            if line.content.extra_infos then
+               set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
+                  virt_text = line.content.extra_infos,
                   virt_text_pos = "right_align",
                })
             end
