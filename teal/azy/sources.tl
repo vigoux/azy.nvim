@@ -109,8 +109,8 @@ function Sources.help(): {AzyElement}
     local file = io.open(hpath)
     if file then
       for line, _ in function(): string, string return file:read() end do
-        local tag = vim.split(line, "\t", { plain = true })[1]
-        table.insert(ret, { search_text = tag })
+        local tag, hfile = unpack(vim.split(line, "\t", { plain = true }))
+        table.insert(ret, { search_text = tag, extra_infos = { { hfile, "Comment" } } })
       end
     end
   end
@@ -128,7 +128,7 @@ function Sources.buffers(): {AzyElement}
 
       local extra_infos = { {"lnum:", "Comment"}, { tostring(infos.lnum), "Function" } }
 
-      if infos.changed then
+      if infos.changed == 1 then
         table.insert(extra_infos, 1, { "+,", "Comment" })
       end
       ret[#ret + 1] = { search_text = infos.name, extra_infos = extra_infos }

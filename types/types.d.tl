@@ -288,3 +288,5 @@ end
 global record jit
   os: string
 end
+
+global unpack: function<T>({T}, number, number): T...
