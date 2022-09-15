@@ -318,8 +318,16 @@ function AzyUi._redraw()
         end
 
         if line.content.extra_infos then
+          local virt_text = { unpack(line.content.extra_infos) }
+
+          if line == selected then
+            virt_text[#virt_text + 1] = { " <", "Normal" }
+          else
+            virt_text[#virt_text + 1] = { "  ", "Normal" }
+          end
+
           set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
-            virt_text = line.content.extra_infos,
+            virt_text = virt_text,
             virt_text_pos = "right_align"
           })
         end
