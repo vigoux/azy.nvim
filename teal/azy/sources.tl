@@ -77,24 +77,27 @@ local function read_ignore_file(ignored_patterns: {vim.Regex}, path: string)
   end
 end
 
-function Sources.files(paths: {string}, config: Sources.FilesOptions): {AzyElement}
+function Sources.files(paths: {string}, config: Sources.FilesOptions): {AzyElement|string}
   local ret = {}
   config = config or {}
 
   -- Set the ignored patterns using .gitignore and ignore
   local ignored = vim.tbl_map(function(e: string): vim.Regex return vim.regex(e) end, config.ignored_patterns or {})
-  local ok, gitdir = pcall(utils.git, "rev-parse", "--show-toplevel")
-  if ok and #gitdir == 1 then
-    read_ignore_file(ignored, utils.path.join(gitdir[1], ".gitignore"))
-  end
+  local in_git = pcall(utils.git, "rev-parse", "--show-toplevel")
   read_ignore_file(ignored, ".ignore")
 
-  if not paths or #paths == 0 then
-    paths = { "." }
-  end
+  local paths_set: boolean = not paths or #paths == 0
 
-  for p in iter_files(paths, config.show_hidden, ignored) do
-    table.insert(ret, { search_text = p })
+  if in_git and paths_set then
+    return utils.git "ls-files"
+  else
+    if paths_set then
+      paths = { "." }
+    end
+
+    for p in iter_files(paths, config.show_hidden, ignored) do
+      table.insert(ret, { search_text = p })
+    end
   end
   return ret
 end

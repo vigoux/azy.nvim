@@ -4,6 +4,8 @@ local sinks = require'azy.sinks'
 
 local record Builtins
   files: function({string}, sources.FilesOptions): function()
+  help: function(): function()
+  buffers: function(): function()
 end
 
 function Builtins.files(paths: {string}, opts: sources.FilesOptions): function()

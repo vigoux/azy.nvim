@@ -12,6 +12,11 @@ function Utils.git(...)
       error("Could not execute git")
    end
 
+   local is_git = #(vim.fn.systemlist({ "git", "rev-parse", "HEAD" })) == 1
+   if not is_git then
+      error("Not in a git directory")
+   end
+
    return vim.fn.systemlist({ "git", ... })
 end
 
