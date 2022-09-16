@@ -117,7 +117,7 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
       toel = { content = e }
     end
     if AzyUi._search_text_cache[toel.content.search_text] then
-      error "Collision in search text cache"
+      error(string.format("Collision in search text cache: '%s'", toel.content.search_text))
     else
       AzyUi._search_text_cache[toel.content.search_text] = toel
     end
