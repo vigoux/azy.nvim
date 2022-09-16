@@ -6,6 +6,11 @@ global record AzyElement
   extra: any
 end
 
+global record AzyCbModifiers
+  vsplit: boolean
+  split: boolean
+end
+
 global record vim
   record BufNr
   end
@@ -40,6 +45,10 @@ global record vim
   end
 
   record cmd
+    metamethod __call: function(cmd, ...: string)
+    vertical: function(string, ...: string)
+    vsplit: function(string)
+    split: function(string)
     edit: function(string)
     help: function(string)
     startinsert: function()

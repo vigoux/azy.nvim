@@ -76,9 +76,9 @@ function Async.ui(command, transform, sink)
             j:stop()
          end
       end)
-      ui.create({}, function(e)
+      ui.create({}, function(e, options)
          job:stop()
-         sink(e)
+         sink(e, options)
       end)
       job:run()
    end

@@ -81,13 +81,13 @@ local record AzyUi
   next: function()
   prev: function()
   exit: function()
-  confirm: function()
+  confirm: function(AzyCbModifiers)
 
   -- Private stuff
   _close: function()
   _destroy: function()
   _source_lines: {AzyLine}
-  _callback: function(AzyElement)
+  _callback: function(AzyElement, AzyCbModifiers)
 
   -- Main update function, refreshs the whole buffer
   _update_output_buf: function()
@@ -111,7 +111,7 @@ local record AzyUi
   _choices: fzy.Choices
 end
 
-function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElement))
+function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElement, AzyCbModifiers))
   log("Creating with", #content, "elements")
   vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
   AzyUi._callback = callback or function(i: AzyElement) vim.notify(i.search_text) end
@@ -197,7 +197,9 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   -- Mappings
   vim.keymap.set({"n", "i"}, "<Down>", AzyUi.next, { buffer = AzyUi._input_buf })
   vim.keymap.set({"n", "i"}, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
-  vim.keymap.set({"n", "i"}, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
+  vim.keymap.set({"n", "i"}, "<CR>", function() AzyUi.confirm {} end, { buffer = AzyUi._input_buf })
+  vim.keymap.set({"n", "i"}, "<C-V>", function() AzyUi.confirm { vsplit = true } end, { buffer = AzyUi._input_buf })
+  vim.keymap.set({"n", "i"}, "<C-H>", function() AzyUi.confirm { split = true } end, { buffer = AzyUi._input_buf })
   vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
   AzyUi._selected_index = 1
@@ -244,14 +246,14 @@ function AzyUi.add(lines: {AzyElement|string}): boolean
   return true
 end
 
-function AzyUi.confirm()
+function AzyUi.confirm(options: AzyCbModifiers)
   AzyUi._close()
-  local selected = AzyUi._choices:selected()
+  local selected = AzyUi._selected()
   if selected then
     if DEBUG then
-      AzyUi._callback(AzyUi._search_text_cache[selected].content)
+      AzyUi._callback(selected.content, options or {})
     else
-      pcall(AzyUi._callback, AzyUi._search_text_cache[selected].content)
+      pcall(AzyUi._callback, selected.content, options or {})
     end
   end
   AzyUi._destroy()

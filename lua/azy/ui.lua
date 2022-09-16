@@ -47,7 +47,7 @@ else
    end
 end
 
-
+local AzyLine = {}
 
 
 
@@ -197,7 +197,9 @@ function AzyUi.create(content, callback)
 
    vim.keymap.set({ "n", "i" }, "<Down>", AzyUi.next, { buffer = AzyUi._input_buf })
    vim.keymap.set({ "n", "i" }, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
-   vim.keymap.set({ "n", "i" }, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
+   vim.keymap.set({ "n", "i" }, "<CR>", function() AzyUi.confirm({}) end, { buffer = AzyUi._input_buf })
+   vim.keymap.set({ "n", "i" }, "<C-V>", function() AzyUi.confirm({ vsplit = true }) end, { buffer = AzyUi._input_buf })
+   vim.keymap.set({ "n", "i" }, "<C-H>", function() AzyUi.confirm({ split = true }) end, { buffer = AzyUi._input_buf })
    vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
    AzyUi._selected_index = 1
@@ -244,14 +246,14 @@ function AzyUi.add(lines)
    return true
 end
 
-function AzyUi.confirm()
+function AzyUi.confirm(options)
    AzyUi._close()
-   local selected = AzyUi._choices:selected()
+   local selected = AzyUi._selected()
    if selected then
       if DEBUG then
-         AzyUi._callback(AzyUi._search_text_cache[selected].content)
+         AzyUi._callback(selected.content, options or {})
       else
-         pcall(AzyUi._callback, AzyUi._search_text_cache[selected].content)
+         pcall(AzyUi._callback, selected.content, options or {})
       end
    end
    AzyUi._destroy()

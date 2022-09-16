@@ -68,7 +68,7 @@ function Async:_on_data(data: {string})
   end
 end
 
-function Async.ui(command: {string}, transform: (function(string): AzyElement), sink: function(AzyElement)): function()
+function Async.ui(command: {string}, transform: (function(string): AzyElement), sink: function(AzyElement, AzyCbModifiers)): function()
   return function()
     local job = Async.create(command, 10000, function(j: Async, lines: {string})
       if not ui.add(vim.tbl_map(transform, lines)) then
@@ -76,9 +76,9 @@ function Async.ui(command: {string}, transform: (function(string): AzyElement), 
         j:stop()
       end
     end)
-    ui.create({}, function(e: AzyElement)
+    ui.create({}, function(e: AzyElement, options: AzyCbModifiers)
       job:stop()
-      sink(e)
+      sink(e, options)
     end)
     job:run()
   end
