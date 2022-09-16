@@ -58,7 +58,7 @@ local function iter_files(paths: {string}, show_hidden: boolean, ignored_pattern
           return nil
         end
       elseif not (vim.startswith(next_path, '.') and not show_hidden) then
-        local full_path = utils.path.shorten(utils.path.join(path, next_path))
+        local full_path = utils.path.join(path, next_path)
         if path_type == 'directory' then
           table.insert(path_stack, full_path)
         elseif not is_ignored(full_path, ignored_patterns) then
@@ -89,7 +89,11 @@ local function list_files(paths: {string}, config: Sources.FilesOptions): {strin
 
   local paths_set: boolean = not paths or #paths == 0
 
-  if in_git and paths_set then
+  if vim.fn.executable "fd" == 1 then
+    return vim.fn.systemlist "fd"
+  elseif vim.fn.executable "fdfind" == 1 then
+    return vim.fn.systemlist "fdfind"
+  elseif in_git and paths_set then
     return utils.git "ls-files"
   else
     local ret = {}
@@ -106,7 +110,7 @@ end
 
 function Sources.files(paths: {string}, config: Sources.FilesOptions): {AzyElement}
   return vim.tbl_map(function(e: string): AzyElement
-    return { search_text = e }
+    return { search_text = utils.path.shorten(e) }
   end, list_files(paths, config))
 end
 
