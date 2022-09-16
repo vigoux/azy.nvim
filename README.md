@@ -37,6 +37,7 @@ These builtin functions return a function suitable for
 ## Builtins
 
 - `azy.builtins.files(paths)`: files under `paths`. Respects both the local `.gitignore` file and `.ignore`.
+- `azy.builtins.files_contents(paths)`: contents of the files under `paths`
 - `azy.builtins.help()`: help tags, opens the selected tag on confirm
 - `azy.builtins.buffers()`: opened buffers
 - `azy.builtins.quickfix()`: items in the quickfix list

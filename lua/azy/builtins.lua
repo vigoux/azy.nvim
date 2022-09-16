@@ -14,9 +14,16 @@ local Builtins = {lsp = {}, }
 
 
 
+
 function Builtins.files(paths, opts)
    return function()
       ui.create(sources.files(paths, opts), sinks.open_file)
+   end
+end
+
+function Builtins.files_contents(paths, opts)
+   return function()
+      ui.create(sources.files_contents(paths, opts), sinks.open_file)
    end
 end
 

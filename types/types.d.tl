@@ -95,8 +95,10 @@ global record vim
     glob2regpat: function(string): string
     match: function(string|{string}, string, integer, integer): integer
     mode: function(): string
+    pathshorten: function(string, integer): string
     pumvisible: function(): integer
     reverse: function<T>({T}): {T}
+    strdisplaywidth: function(string): integer
     systemlist: function({string}|string): {string}
     taglist: function(string, string|nil): {Tag}
   end

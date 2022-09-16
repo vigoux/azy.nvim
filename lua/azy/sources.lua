@@ -79,9 +79,7 @@ local function read_ignore_file(ignored_patterns, path)
       end
    end
 end
-
-function Sources.files(paths, config)
-   local ret = {}
+local function list_files(paths, config)
    config = config or {}
 
 
@@ -94,16 +92,79 @@ function Sources.files(paths, config)
    if in_git and paths_set then
       return utils.git("ls-files")
    else
+      local ret = {}
       if paths_set then
          paths = { "." }
       end
 
       for p in iter_files(paths, config.show_hidden, ignored) do
-         table.insert(ret, { search_text = p })
+         table.insert(ret, p)
+      end
+      return ret
+   end
+end
+
+function Sources.files(paths, config)
+   return vim.tbl_map(function(e)
+      return { search_text = e }
+   end, list_files(paths, config))
+end
+
+local function fname_format(e, lnum, length)
+   local elen = vim.fn.strdisplaywidth(e)
+   local lnumlen = vim.fn.strdisplaywidth(tostring(lnum))
+   length = (length or 30) - lnumlen - 1
+
+   local pfmt
+   local padding = ""
+
+   if elen > length then
+      pfmt = vim.fn.pathshorten(e, 1)
+      elen = vim.fn.strdisplaywidth(pfmt)
+   end
+
+   if elen > length then
+      pfmt = "..." .. pfmt:sub(#pfmt - length - 2)
+   else
+      pfmt = e
+      padding = vim.fn["repeat"](" ", length - elen)
+   end
+
+   return string.format("%s:%d%s|", pfmt, lnum, padding)
+end
+
+function Sources.files_contents(paths, config)
+   local ret = {}
+   local files = list_files(paths, config)
+   for i = 1, #files do
+      local file = io.open(files[i])
+      if file then
+         local lnum = 1
+         for line, _ in function() return file:read() end do
+            if #line > 0 then
+               ret[#ret + 1] = {
+                  search_text = fname_format(files[i], lnum) .. line,
+                  extra_infos = {
+                     { files[i], "Comment" },
+                     { ":", "Comment" },
+                     { tostring(lnum), "Function" },
+                  },
+
+                  extra = {
+                     filename = files[i],
+                     lnum = lnum,
+                     col = 0,
+                  },
+               }
+               lnum = lnum + 1
+            end
+         end
       end
    end
+
    return ret
 end
+
 
 
 function Sources.help()
