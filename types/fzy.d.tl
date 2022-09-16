@@ -1,6 +1,7 @@
 local record Fzy
   record Choices
     add: function(Choices, {string})
+    add_incremental: function(Choices, {string})
     available: function(Choices): integer
     elements: function(Choices): {{string, integer}}
     search: function(Choices, string)

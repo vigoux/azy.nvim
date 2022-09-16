@@ -84,6 +84,17 @@ global record vim
       name: string
     end
 
+    record Job
+    end
+
+    record JobStartOptions
+      clear_env: boolean
+      cwd: string
+      detach: boolean
+      env: {string:string}
+      on_stdout: function(integer, {string}, string)
+    end
+
     ["repeat"]: function(string, integer): string
     buflisted: function(BufNr): integer
     executable: function(string): integer
@@ -93,6 +104,8 @@ global record vim
     getcwd: function(): string
     getqflist: function(): {QfItem}
     glob2regpat: function(string): string
+    jobstop: function(Job)
+    jobstart: function({string}, JobStartOptions): Job
     match: function(string|{string}, string, integer, integer): integer
     mode: function(): string
     pathshorten: function(string, integer): string
@@ -278,6 +291,7 @@ global record vim
   record loop
     record FSIterator
     end
+
     fs_scandir: function(string): FSIterator
     fs_scandir_next: function(FSIterator): string|nil, string
     hrtime: function(): integer

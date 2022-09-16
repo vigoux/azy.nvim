@@ -1,4 +1,5 @@
 local ui = require('azy.ui')
+local async = require('azy.async')
 local sources = require('azy.sources')
 local sinks = require('azy.sinks')
 
@@ -15,7 +16,34 @@ local Builtins = {lsp = {}, }
 
 
 
+local function async_ui(command, transform, sink)
+   return function()
+      local job = async.create(command, 10000, function(lines)
+         ui.add(vim.tbl_map(transform, lines))
+      end)
+      ui.create({}, function(e)
+         job:stop()
+         sink(e)
+      end)
+      job:run()
+   end
+end
+
 function Builtins.files(paths, opts)
+   local paths_not_set = not paths or #paths == 0
+
+   if paths_not_set then
+      if vim.fn.executable("fd") == 1 then
+         return async_ui({ "fd", "--type", "f" }, function(el)
+            return { search_text = el }
+         end, sinks.open_file)
+      elseif vim.fn.executable("fdfind") == 1 then
+         return async_ui({ "fdfind", "--type", "f" }, function(el)
+            return { search_text = el }
+         end, sinks.open_file)
+      end
+   end
+
    return function()
       ui.create(sources.files(paths, opts), sinks.open_file)
    end

@@ -75,6 +75,7 @@ end
 
 local record AzyUi
   create: function({AzyElement|string}, function(AzyElement))
+  add: function({AzyElement|string})
   next: function()
   prev: function()
   exit: function()
@@ -109,7 +110,6 @@ local record AzyUi
 end
 
 function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElement))
-  if #content == 0 then return end
   log("Creating with", #content, "elements")
   vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
   AzyUi._callback = callback or function(i: AzyElement) vim.notify(i.search_text) end
@@ -201,6 +201,44 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   AzyUi._selected_index = 1
   AzyUi._redraw()
   vim.cmd.startinsert()
+end
+
+function AzyUi.add(lines: {AzyElement|string})
+  -- as this can be called asynchronously, check that the ui is valid
+  if not AzyUi._choices then return end
+  time_this("Update incremental", function()
+    log(string.format("Will add %d elements to %d", #lines, #AzyUi._source_lines))
+    local all_lines = {}
+
+    for i = 1,#lines do
+      local line = lines[i]
+      local toel: AzyLine
+      if line is string then
+        toel = { content = { search_text = line } }
+      else
+        toel = { content = line }
+      end
+
+      if AzyUi._search_text_cache[toel.content.search_text] then
+        error(string.format("Collision in search text cache: '%s'", toel.content.search_text))
+      else
+        AzyUi._search_text_cache[toel.content.search_text] = toel
+      end
+
+      all_lines[#all_lines + 1] = toel.content.search_text
+      AzyUi._source_lines[#AzyUi._source_lines + 1] = toel
+    end
+
+    time_this("Filter incremental", function()
+      AzyUi._choices:add_incremental(all_lines)
+    end)
+
+    -- Nice thing: no need to update the cursor as:
+    --  if the prompt is empty the lines will be _appended to the search_
+    --  if not fzy handles the cursor navigation for us
+
+    AzyUi._redraw()
+  end)
 end
 
 function AzyUi.confirm()

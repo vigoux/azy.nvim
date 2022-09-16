@@ -108,8 +108,8 @@ local AzyUi = {}
 
 
 
+
 function AzyUi.create(content, callback)
-   if #content == 0 then return end
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
@@ -201,6 +201,44 @@ function AzyUi.create(content, callback)
    AzyUi._selected_index = 1
    AzyUi._redraw()
    vim.cmd.startinsert()
+end
+
+function AzyUi.add(lines)
+
+   if not AzyUi._choices then return end
+   time_this("Update incremental", function()
+      log(string.format("Will add %d elements to %d", #lines, #AzyUi._source_lines))
+      local all_lines = {}
+
+      for i = 1, #lines do
+         local line = lines[i]
+         local toel
+         if type(line) == "string" then
+            toel = { content = { search_text = line } }
+         else
+            toel = { content = line }
+         end
+
+         if AzyUi._search_text_cache[toel.content.search_text] then
+            error(string.format("Collision in search text cache: '%s'", toel.content.search_text))
+         else
+            AzyUi._search_text_cache[toel.content.search_text] = toel
+         end
+
+         all_lines[#all_lines + 1] = toel.content.search_text
+         AzyUi._source_lines[#AzyUi._source_lines + 1] = toel
+      end
+
+      time_this("Filter incremental", function()
+         AzyUi._choices:add_incremental(all_lines)
+      end)
+
+
+
+
+
+      AzyUi._redraw()
+   end)
 end
 
 function AzyUi.confirm()
