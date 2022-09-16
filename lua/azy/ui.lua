@@ -116,7 +116,11 @@ function AzyUi.create(content, callback)
       else
          toel = { content = e }
       end
-      AzyUi._search_text_cache[toel.content.search_text] = toel
+      if AzyUi._search_text_cache[toel.content.search_text] then
+         error("Collision in search text cache")
+      else
+         AzyUi._search_text_cache[toel.content.search_text] = toel
+      end
       all_lines[#all_lines + 1] = toel.content.search_text
       return toel
    end, content)
