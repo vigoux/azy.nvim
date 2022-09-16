@@ -89,9 +89,15 @@ local record AzyUi
   _update_output_buf: function()
   _redraw: function()
 
-  _current_prompt: string|nil
+  -- Utilities to help with searching and filtering
+  _prompt: string|nil
   _search_text_cache: {string:AzyLine}
 
+  -- Scroll handling
+  _selected: function(): AzyLine, integer
+  _selected_index: integer
+
+  -- UI from the nvim POV
   _input_buf: vim.BufNr
   _input_win: vim.WinNr
   _output_buf: vim.BufNr
@@ -102,10 +108,11 @@ local record AzyUi
 end
 
 function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElement))
+  if #content == 0 then return end
   log("Creating with", #content, "elements")
   vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
   AzyUi._callback = callback or function(i: AzyElement) vim.notify(i.search_text) end
-  AzyUi._current_prompt = ""
+  AzyUi._prompt = ""
 
   AzyUi._search_text_cache = {}
   local all_lines = {}
@@ -190,6 +197,7 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   vim.keymap.set({"n", "i"}, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
   vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
+  AzyUi._selected_index = 1
   AzyUi._redraw()
   vim.cmd.startinsert()
 end
@@ -207,13 +215,25 @@ function AzyUi.confirm()
   AzyUi._destroy()
 end
 
+function AzyUi._selected(): AzyLine, integer
+  if #AzyUi._prompt == 0 then
+    return AzyUi._source_lines[AzyUi._selected_index], AzyUi._selected_index
+  else
+    local text, index = AzyUi._choices:selected()
+    return AzyUi._search_text_cache[text], index
+  end
+end
+
+-- We change the selected index even if it is not used, as it is probably faster that branching
 function AzyUi.next()
   AzyUi._choices:next()
+  AzyUi._selected_index = (AzyUi._selected_index % #AzyUi._source_lines) + 1
   AzyUi._redraw()
 end
 
 function AzyUi.prev()
   AzyUi._choices:prev()
+  AzyUi._selected_index = ((AzyUi._selected_index - 2) % #AzyUi._source_lines) + 1
   AzyUi._redraw()
 end
 
@@ -242,7 +262,7 @@ end
 function AzyUi._update_output_buf()
   local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
 
-  if AzyUi._current_prompt and AzyUi._current_prompt == iline then
+  if AzyUi._prompt == iline then
     -- For some reason we called this function twice in a row
     -- This may happen if something increments the changed_tick without actually changing the
     -- buffer content
@@ -256,7 +276,8 @@ function AzyUi._update_output_buf()
       end)
     end
 
-    AzyUi._current_prompt = iline
+    AzyUi._selected_index = 1
+    AzyUi._prompt = iline
     AzyUi._redraw()
   end)
 end
@@ -265,24 +286,25 @@ local set_extmark = vim.api.nvim_buf_set_extmark
 function AzyUi._redraw()
   time_this("Redraw", function()
     local start: integer = 1
-    local selected_text, current_selection = AzyUi._choices:selected()
+    local selected, current_selection = AzyUi._selected()
     current_selection = current_selection or 1
     if current_selection > HEIGHT then
       start = current_selection - HEIGHT + 1
-      local available: integer = AzyUi._choices:available()
+      local available: integer
+      if #AzyUi._prompt == 0 then
+        available = #AzyUi._source_lines
+      else
+        available = AzyUi._choices:available()
+      end
       if start + HEIGHT > available and available > 0 then
         start = available - HEIGHT + 1
       end
     end
 
     local function for_each_displayed_line(func: function(AzyLine, integer))
-      if AzyUi._choices:available() == 0 and #AzyUi._current_prompt > 0 then
-        return
-      end
-
       for i = start,start+HEIGHT do
         local line: AzyLine
-        if #AzyUi._current_prompt == 0 then
+        if #AzyUi._prompt == 0 then
           line = AzyUi._source_lines[i]
         else
           line = AzyUi._search_text_cache[AzyUi._choices:get(i)]
@@ -300,7 +322,6 @@ function AzyUi._redraw()
 
     -- Setting the cursor to the appropriate line has to be done later, after the lines are updated
     local hl_offset: integer = 0
-    local selected: AzyLine = AzyUi._search_text_cache[selected_text] or AzyUi._source_lines[1]
     time_this("Build lines", function()
       for_each_displayed_line(function(line: AzyLine)
         local l, off = format_line(line, line == selected)
@@ -320,12 +341,12 @@ function AzyUi._redraw()
     time_this("Highlight lines", function()
       vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
       for_each_displayed_line(function(line: AzyLine, row: integer)
-        local score, positions = fzy.match(AzyUi._current_prompt, line.content.search_text)
+        local score, positions = fzy.match(AzyUi._prompt, line.content.search_text)
         if not score then
           error "Inconsistent state"
         end
 
-        if DEBUG and AzyUi._current_prompt and #AzyUi._current_prompt > 0 then
+        if DEBUG and AzyUi._prompt and #AzyUi._prompt > 0 then
           set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
             virt_text = { { tostring(score), "Comment" } },
           })

@@ -101,11 +101,18 @@ local AzyUi = {}
 
 
 
+
+
+
+
+
+
 function AzyUi.create(content, callback)
+   if #content == 0 then return end
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
-   AzyUi._current_prompt = ""
+   AzyUi._prompt = ""
 
    AzyUi._search_text_cache = {}
    local all_lines = {}
@@ -190,6 +197,7 @@ function AzyUi.create(content, callback)
    vim.keymap.set({ "n", "i" }, "<CR>", AzyUi.confirm, { buffer = AzyUi._input_buf })
    vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
+   AzyUi._selected_index = 1
    AzyUi._redraw()
    vim.cmd.startinsert()
 end
@@ -207,13 +215,25 @@ function AzyUi.confirm()
    AzyUi._destroy()
 end
 
+function AzyUi._selected()
+   if #AzyUi._prompt == 0 then
+      return AzyUi._source_lines[AzyUi._selected_index], AzyUi._selected_index
+   else
+      local text, index = AzyUi._choices:selected()
+      return AzyUi._search_text_cache[text], index
+   end
+end
+
+
 function AzyUi.next()
    AzyUi._choices:next()
+   AzyUi._selected_index = (AzyUi._selected_index % #AzyUi._source_lines) + 1
    AzyUi._redraw()
 end
 
 function AzyUi.prev()
    AzyUi._choices:prev()
+   AzyUi._selected_index = ((AzyUi._selected_index - 2) % #AzyUi._source_lines) + 1
    AzyUi._redraw()
 end
 
@@ -242,7 +262,7 @@ end
 function AzyUi._update_output_buf()
    local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
 
-   if AzyUi._current_prompt and AzyUi._current_prompt == iline then
+   if AzyUi._prompt == iline then
 
 
 
@@ -256,7 +276,8 @@ function AzyUi._update_output_buf()
          end)
       end
 
-      AzyUi._current_prompt = iline
+      AzyUi._selected_index = 1
+      AzyUi._prompt = iline
       AzyUi._redraw()
    end)
 end
@@ -265,24 +286,25 @@ local set_extmark = vim.api.nvim_buf_set_extmark
 function AzyUi._redraw()
    time_this("Redraw", function()
       local start = 1
-      local selected_text, current_selection = AzyUi._choices:selected()
+      local selected, current_selection = AzyUi._selected()
       current_selection = current_selection or 1
       if current_selection > HEIGHT then
          start = current_selection - HEIGHT + 1
-         local available = AzyUi._choices:available()
+         local available
+         if #AzyUi._prompt == 0 then
+            available = #AzyUi._source_lines
+         else
+            available = AzyUi._choices:available()
+         end
          if start + HEIGHT > available and available > 0 then
             start = available - HEIGHT + 1
          end
       end
 
       local function for_each_displayed_line(func)
-         if AzyUi._choices:available() == 0 and #AzyUi._current_prompt > 0 then
-            return
-         end
-
          for i = start, start + HEIGHT do
             local line
-            if #AzyUi._current_prompt == 0 then
+            if #AzyUi._prompt == 0 then
                line = AzyUi._source_lines[i]
             else
                line = AzyUi._search_text_cache[AzyUi._choices:get(i)]
@@ -300,7 +322,6 @@ function AzyUi._redraw()
 
 
       local hl_offset = 0
-      local selected = AzyUi._search_text_cache[selected_text] or AzyUi._source_lines[1]
       time_this("Build lines", function()
          for_each_displayed_line(function(line)
             local l, off = format_line(line, line == selected)
@@ -320,12 +341,12 @@ function AzyUi._redraw()
       time_this("Highlight lines", function()
          vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
          for_each_displayed_line(function(line, row)
-            local score, positions = fzy.match(AzyUi._current_prompt, line.content.search_text)
+            local score, positions = fzy.match(AzyUi._prompt, line.content.search_text)
             if not score then
                error("Inconsistent state")
             end
 
-            if DEBUG and AzyUi._current_prompt and #AzyUi._current_prompt > 0 then
+            if DEBUG and AzyUi._prompt and #AzyUi._prompt > 0 then
                set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
                   virt_text = { { tostring(score), "Comment" } },
                })
