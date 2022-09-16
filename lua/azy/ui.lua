@@ -109,6 +109,8 @@ local AzyUi = {}
 
 
 
+
+
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
@@ -205,7 +207,7 @@ end
 
 function AzyUi.add(lines)
 
-   if not AzyUi._choices then return end
+   if not AzyUi._choices then return false end
    time_this("Update incremental", function()
       log(string.format("Will add %d elements to %d", #lines, #AzyUi._source_lines))
       local all_lines = {}
@@ -239,6 +241,7 @@ function AzyUi.add(lines)
 
       AzyUi._redraw()
    end)
+   return true
 end
 
 function AzyUi.confirm()
@@ -308,7 +311,7 @@ function AzyUi._update_output_buf()
       return
    end
 
-   time_this("Update", function()
+   time_this(string.format("Update for %d elements", #AzyUi._source_lines), function()
       if #iline > 0 then
          time_this("Filter", function()
             AzyUi._choices:search(iline)

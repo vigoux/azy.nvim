@@ -75,7 +75,9 @@ end
 
 local record AzyUi
   create: function({AzyElement|string}, function(AzyElement))
-  add: function({AzyElement|string})
+
+  -- @return Whether the UI is still alive
+  add: function({AzyElement|string}): boolean
   next: function()
   prev: function()
   exit: function()
@@ -203,9 +205,9 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   vim.cmd.startinsert()
 end
 
-function AzyUi.add(lines: {AzyElement|string})
+function AzyUi.add(lines: {AzyElement|string}): boolean
   -- as this can be called asynchronously, check that the ui is valid
-  if not AzyUi._choices then return end
+  if not AzyUi._choices then return false end
   time_this("Update incremental", function()
     log(string.format("Will add %d elements to %d", #lines, #AzyUi._source_lines))
     local all_lines = {}
@@ -239,6 +241,7 @@ function AzyUi.add(lines: {AzyElement|string})
 
     AzyUi._redraw()
   end)
+  return true
 end
 
 function AzyUi.confirm()
@@ -308,7 +311,7 @@ function AzyUi._update_output_buf()
     return
   end
 
-  time_this("Update", function()
+  time_this(string.format("Update for %d elements", #AzyUi._source_lines), function()
     if #iline > 0 then
       time_this("Filter", function()
         AzyUi._choices:search(iline)

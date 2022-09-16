@@ -1,4 +1,5 @@
 local ui = require'azy.ui'
+local utils = require'azy.utils'
 local async = require'azy.async'
 local sources = require'azy.sources'
 local sinks = require'azy.sinks'
@@ -16,17 +17,8 @@ local record Builtins
   end
 end
 
-local function async_ui(command: {string}, transform: (function(string): AzyElement), sink: function(AzyElement)): function()
-  return function()
-    local job = async.create(command, 10000, function(lines: {string})
-      ui.add(vim.tbl_map(transform, lines))
-    end)
-    ui.create({}, function(e: AzyElement)
-      job:stop()
-      sink(e)
-    end)
-    job:run()
-  end
+local function fd_transform(el: string): AzyElement
+  return { search_text = utils.path.shorten(el) }
 end
 
 function Builtins.files(paths: {string}, opts: sources.FilesOptions): function()
@@ -34,13 +26,9 @@ function Builtins.files(paths: {string}, opts: sources.FilesOptions): function()
 
   if paths_not_set then
     if vim.fn.executable "fd" == 1 then
-      return async_ui({"fd", "--type", "f"}, function(el: string): AzyElement
-        return { search_text = el }
-      end, sinks.open_file)
+      return async.ui({"fd", "--type", "f"}, fd_transform, sinks.open_file)
     elseif vim.fn.executable "fdfind" == 1 then
-      return async_ui({"fdfind", "--type", "f"}, function(el: string): AzyElement
-        return { search_text = el }
-      end, sinks.open_file)
+      return async.ui({"fdfind", "--type", "f"}, fd_transform, sinks.open_file)
     end
   end
 
