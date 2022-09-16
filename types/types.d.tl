@@ -199,6 +199,7 @@ global record vim
     nvim_win_get_cursor: function(WinNr): {integer, integer}
     nvim_win_is_valid: function(WinNr): boolean
 
+    nvim_set_hl: function(NSId, string, SetHlOptions)
     nvim_set_decoration_provider: function(NSId, DecorationProvider)
   end
 

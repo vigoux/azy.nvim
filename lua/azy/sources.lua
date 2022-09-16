@@ -1,4 +1,5 @@
 local utils = require('azy.utils')
+local config = require('azy.config')
 
 local Sources = {FilesOptions = {}, }
 
@@ -79,11 +80,11 @@ local function read_ignore_file(ignored_patterns, path)
       end
    end
 end
-local function list_files(paths, config)
-   config = config or {}
+local function list_files(paths, cfg)
+   cfg = cfg or {}
 
 
-   local ignored = vim.tbl_map(function(e) return vim.regex(e) end, config.ignored_patterns or {})
+   local ignored = vim.tbl_map(function(e) return vim.regex(e) end, cfg.ignored_patterns or {})
    local in_git = pcall(utils.git, "rev-parse", "--show-toplevel")
    read_ignore_file(ignored, ".ignore")
 
@@ -104,16 +105,16 @@ local function list_files(paths, config)
 
    local ret = {}
 
-   for p in iter_files(paths, config.show_hidden, ignored) do
+   for p in iter_files(paths, cfg.show_hidden, ignored) do
       table.insert(ret, p)
    end
    return ret
 end
 
-function Sources.files(paths, config)
+function Sources.files(paths, cfg)
    return vim.tbl_map(function(e)
       return { search_text = utils.path.shorten(e) }
-   end, list_files(paths, config))
+   end, list_files(paths, cfg))
 end
 
 local function fname_format(e, lnum, length)
@@ -139,9 +140,9 @@ local function fname_format(e, lnum, length)
    return string.format("%s:%d%s|", pfmt, lnum, padding)
 end
 
-function Sources.files_contents(paths, config)
+function Sources.files_contents(paths, cfg)
    local ret = {}
-   local files = list_files(paths, config)
+   local files = list_files(paths, cfg)
    for i = 1, #files do
       local file = io.open(files[i])
       if file then
@@ -151,9 +152,8 @@ function Sources.files_contents(paths, config)
                ret[#ret + 1] = {
                   search_text = fname_format(files[i], lnum) .. line,
                   extra_infos = {
-                     { files[i], "Comment" },
-                     { ":", "Comment" },
-                     { tostring(lnum), "Function" },
+                     { files[i] .. ":", config.HL_DIM },
+                     { tostring(lnum), config.HL_STANDOUT },
                   },
 
                   extra = {
@@ -180,7 +180,7 @@ function Sources.help()
       if file then
          for line, _ in function() return file:read() end do
             local tag, hfile = unpack(vim.split(line, "\t", { plain = true }))
-            table.insert(ret, { search_text = tag, extra_infos = { { hfile, "Comment" } } })
+            table.insert(ret, { search_text = tag, extra_infos = { { hfile, config.HL_DIM } } })
          end
       end
    end
@@ -196,12 +196,12 @@ function Sources.buffers()
       local infos = vim.fn.getbufinfo(bnr)[1]
       if infos.listed == 1 and infos.name and #infos.name > 0 then
 
-         local extra_infos = { { "lnum:", "Comment" }, { tostring(infos.lnum), "Function" } }
+         local extra_infos = { { "lnum:", config.HL_DIM }, { tostring(infos.lnum), config.HL_STANDOUT } }
 
          if infos.changed == 1 then
-            table.insert(extra_infos, 1, { "+,", "Comment" })
+            table.insert(extra_infos, 1, { "+,", config.HL_DIM })
          end
-         ret[#ret + 1] = { search_text = infos.name, extra_infos = extra_infos }
+         ret[#ret + 1] = { search_text = utils.path.shorten(infos.name), extra_infos = extra_infos }
       end
    end
 
@@ -214,11 +214,11 @@ function Sources.qf_items(elems)
       return {
          search_text = e.text,
          extra_infos = {
-            { fname, "Comment" },
-            { ":", "Comment" },
-            { tostring(e.lnum), "Function" },
-            { ":", "Comment" },
-            { tostring(e.col), "Function" },
+            { fname, config.HL_DIM },
+            { ":", config.HL_DIM },
+            { tostring(e.lnum), config.HL_STANDOUT },
+            { ":", config.HL_DIM },
+            { tostring(e.col), config.HL_STANDOUT },
          },
          extra = e,
       }

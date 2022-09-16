@@ -1,4 +1,5 @@
 local fzy = require'fzy'
+local config = require'azy.config'
 local AUGROUP_NAME = "AzyUi"
 local hl_ns = vim.api.nvim_create_namespace 'azy'
 
@@ -348,7 +349,7 @@ function AzyUi._redraw()
 
         if DEBUG and AzyUi._prompt and #AzyUi._prompt > 0 then
           set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
-            virt_text = { { tostring(score), "Comment" } },
+            virt_text = { { tostring(score), config.HL_DIM } },
           })
         end
 

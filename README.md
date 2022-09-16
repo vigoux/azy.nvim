@@ -53,6 +53,14 @@ editable by everyone so feel free to add your lines there.
 - `azy.builtins.lsp.references()`: references to the symbol under the cursor
 - `azy.builtins.lsp.workspace_symbols()`: symbols defined in the current workspace
 
+## Customizing
+
+This plugin provides some highlight groups to customize its look:
+- `AzyMatch`: to highlight positions in the string that match the
+  query
+- `AzyDim`: for extra informations (dimmed)
+- `AzyStandout`: for extra informations (standout)
+
 ## Performances
 
 I made this plugin so that I don't _feel_ any blocking when I am
