@@ -2,7 +2,8 @@ local record Fzy
   record Choices
     add: function(Choices, {string})
     available: function(Choices): integer
-    search: function(Choices, string): {{string, number}}
+    elements: function(Choices): {{string, integer}}
+    search: function(Choices, string)
     selected: function(Choices): string, integer
     next: function(Choices): string, integer
     prev: function(Choices): string, integer

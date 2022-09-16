@@ -75,6 +75,31 @@ static int fzy_choices_populate(lua_State *L)
   return 0;
 }
 
+static int fzy_choices_populate_incremental(lua_State *L)
+{
+  choices_ud_t * c = fzy_choices_check(L, 1);
+  luaL_checktype(L, 2, LUA_TTABLE);
+
+  // Prepare the stack for addition to the reference table
+  lua_rawgeti(L, LUA_REGISTRYINDEX, c->ref); // [reftbl]
+
+  // Now iterate over the table and add to the choices
+  size_t nelems = lua_objlen(L, 2);
+  const char **elems = (const char **)calloc(nelems, sizeof(char *));
+  for (size_t i = 0; i < nelems; i++) {
+    lua_rawgeti(L, 2, i + 1); // [reftbl, elem]
+
+    const char * choice = luaL_checkstring(L, -1);
+    elems[i] = choice;
+    luaL_ref(L, -2); // [reftbl]
+  }
+  lua_pop(L, 1);
+
+  // Now push that to the choices
+  choices_add_incremental(&c->choices, elems, nelems);
+  return 0;
+}
+
 static int fzy_choices_available(lua_State *L)
 {
   choices_ud_t * c = fzy_choices_check(L, 1);
@@ -89,7 +114,12 @@ static int fzy_choices_search(lua_State *L)
   const char * needle = luaL_checkstring(L, 2);
 
   choices_search(&c->choices, needle);
+  return 0;
+}
 
+static int fzy_choices_elements(lua_State *L)
+{
+  choices_ud_t * c = fzy_choices_check(L, 1);
   // Now create the result table
   lua_createtable(L, choices_available(&c->choices), 0); // [ret]
   for (size_t i = 0; i < choices_available(&c->choices); i++) {
@@ -187,8 +217,10 @@ static int fzy_match(lua_State *L)
 
 static struct luaL_Reg choices_meta[] = {
   { "add", fzy_choices_populate },
+  { "add_incremental", fzy_choices_populate_incremental },
   { "available", fzy_choices_available },
   { "search", fzy_choices_search },
+  { "elements", fzy_choices_elements },
   { "selected", fzy_choices_selected },
   { "next", fzy_choices_next },
   { "prev", fzy_choices_prev },
