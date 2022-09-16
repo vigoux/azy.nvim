@@ -87,25 +87,27 @@ local function list_files(paths, config)
    local in_git = pcall(utils.git, "rev-parse", "--show-toplevel")
    read_ignore_file(ignored, ".ignore")
 
-   local paths_set = not paths or #paths == 0
+   local paths_not_set = not paths or #paths == 0
 
-   if vim.fn.executable("fd") == 1 then
-      return vim.fn.systemlist("fd")
-   elseif vim.fn.executable("fdfind") == 1 then
-      return vim.fn.systemlist("fdfind")
-   elseif in_git and paths_set then
-      return utils.git("ls-files")
-   else
-      local ret = {}
-      if paths_set then
-         paths = { "." }
-      end
+   if paths_not_set then
+      paths = { "." }
 
-      for p in iter_files(paths, config.show_hidden, ignored) do
-         table.insert(ret, p)
+      if vim.fn.executable("fd") == 1 then
+         return vim.fn.systemlist("fd")
+      elseif vim.fn.executable("fdfind") == 1 then
+         return vim.fn.systemlist("fdfind")
+      elseif in_git then
+         return utils.git("ls-files")
       end
-      return ret
    end
+
+
+   local ret = {}
+
+   for p in iter_files(paths, config.show_hidden, ignored) do
+      table.insert(ret, p)
+   end
+   return ret
 end
 
 function Sources.files(paths, config)
