@@ -39,6 +39,7 @@ These builtin functions return a function suitable for
 - `azy.builtins.files(paths)`: files under `paths`. Respects both the local `.gitignore` file and `.ignore`.
 - `azy.builtins.help()`: help tags, opens the selected tag on confirm
 - `azy.builtins.buffers()`: opened buffers
+- `azy.builtins.quickfix()`: items in the quickfix list
 
 ### LSP-related
 

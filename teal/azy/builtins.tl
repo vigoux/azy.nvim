@@ -6,6 +6,7 @@ local record Builtins
   files: function({string}, sources.FilesOptions): function()
   help: function(): function()
   buffers: function(): function()
+  quickfix: function(): function()
 
   record lsp
     references: function(): function()
@@ -28,6 +29,12 @@ end
 function Builtins.buffers(): function()
   return function()
     ui.create(sources.buffers(), sinks.open_file)
+  end
+end
+
+function Builtins.quickfix(): function()
+  return function()
+    ui.create(sources.qf_items(vim.fn.getqflist()), sinks.qf_item)
   end
 end
 

@@ -84,17 +84,18 @@ global record vim
       name: string
     end
 
-    getbufinfo: function(BufNr): {BufInfo}
+    ["repeat"]: function(string, integer): string
     buflisted: function(BufNr): integer
     executable: function(string): integer
     exists: function(string): integer
     fnamemodify: function(string, string): string
+    getbufinfo: function(BufNr): {BufInfo}
     getcwd: function(): string
+    getqflist: function(): {QfItem}
     glob2regpat: function(string): string
     match: function(string|{string}, string, integer, integer): integer
     mode: function(): string
     pumvisible: function(): integer
-    ["repeat"]: function(string, integer): string
     reverse: function<T>({T}): {T}
     systemlist: function({string}|string): {string}
     taglist: function(string, string|nil): {Tag}

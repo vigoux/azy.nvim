@@ -13,6 +13,7 @@ local Builtins = {lsp = {}, }
 
 
 
+
 function Builtins.files(paths, opts)
    return function()
       ui.create(sources.files(paths, opts), sinks.open_file)
@@ -28,6 +29,12 @@ end
 function Builtins.buffers()
    return function()
       ui.create(sources.buffers(), sinks.open_file)
+   end
+end
+
+function Builtins.quickfix()
+   return function()
+      ui.create(sources.qf_items(vim.fn.getqflist()), sinks.qf_item)
    end
 end
 
