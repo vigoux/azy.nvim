@@ -43,6 +43,7 @@ These builtin functions return a function suitable for
 ### LSP-related
 
 - `azy.builtins.lsp.references()`: references to the symbol under the cursor
+- `azy.builtins.lsp.workspace_symbols()`: symbols defined in the current workspace
 
 ## Performances
 

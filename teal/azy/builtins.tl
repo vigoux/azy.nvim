@@ -9,6 +9,7 @@ local record Builtins
 
   record lsp
     references: function(): function()
+    workspace_symbols: function(): function()
   end
 end
 
@@ -30,15 +31,22 @@ function Builtins.buffers(): function()
   end
 end
 
-function Builtins.lsp.references(): function()
+local function lsp_on_list<T>(f: function(T, vim.lsp.LspOnListOptions), param: T): function()
   return function()
-    vim.lsp.buf.references({ includeDeclaration = true }, {
+    f(param, {
       on_list = function(items: vim.lsp.LspOnListOptions.Arg)
-        vim.pretty_print(items)
         ui.create(sources.qf_items(items.items), sinks.qf_item)
       end
     })
   end
+end
+
+function Builtins.lsp.references(): function()
+  return lsp_on_list(vim.lsp.buf.references, { includeDeclaration = true })
+end
+
+function Builtins.lsp.workspace_symbols(): function()
+  return lsp_on_list(vim.lsp.buf.workspace_symbol, "")
 end
 
 return Builtins
