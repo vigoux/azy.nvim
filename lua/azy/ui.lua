@@ -46,7 +46,7 @@ else
    end
 end
 
-local AzyLine = {}
+
 
 
 
@@ -137,6 +137,9 @@ function AzyUi.create(content, callback)
 
    local input_row = lines - (HEIGHT + 2)
 
+   if AzyUi._input_win and vim.api.nvim_win_is_valid(AzyUi._input_win) then
+      vim.api.nvim_win_close(AzyUi._input_win, true)
+   end
    AzyUi._input_win = vim.api.nvim_open_win(AzyUi._input_buf, true, {
       relative = 'editor',
       anchor = 'NW',
@@ -148,8 +151,11 @@ function AzyUi.create(content, callback)
       style = 'minimal',
       border = 'none',
    })
-
    vim.api.nvim_win_set_option(AzyUi._input_win, 'winblend', 0)
+
+   if AzyUi._output_win and vim.api.nvim_win_is_valid(AzyUi._output_win) then
+      vim.api.nvim_win_close(AzyUi._output_win, true)
+   end
    AzyUi._output_win = vim.api.nvim_open_win(AzyUi._output_buf, false, {
       relative = 'editor',
       anchor = 'NW',
