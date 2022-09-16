@@ -22,14 +22,10 @@ local function fd_transform(el: string): AzyElement
 end
 
 function Builtins.files(paths: {string}, opts: sources.FilesOptions): function()
-  local paths_not_set: boolean = not paths or #paths == 0
-
-  if paths_not_set then
-    if vim.fn.executable "fd" == 1 then
-      return async.ui({"fd", "--type", "f"}, fd_transform, sinks.open_file)
-    elseif vim.fn.executable "fdfind" == 1 then
-      return async.ui({"fdfind", "--type", "f"}, fd_transform, sinks.open_file)
-    end
+  if vim.fn.executable "fd" == 1 then
+    return async.ui({"fd", "--type", "f", '--', '.', unpack(paths or {})}, fd_transform, sinks.open_file)
+  elseif vim.fn.executable "fdfind" == 1 then
+    return async.ui({"fdfind", "--type", "f", '--', '.', unpack(paths or {})}, fd_transform, sinks.open_file)
   end
 
   return function()
