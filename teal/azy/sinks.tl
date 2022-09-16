@@ -14,8 +14,12 @@ end
 
 function Sinks.qf_item(elem: AzyElement)
   local item = elem.extra as vim.QfItem
-  if item then
-    vim.cmd.edit(item.filename)
+  if item and item.valid == 1 then
+    if item.filename then
+      vim.cmd.edit(item.filename)
+    else
+      vim.api.nvim_win_set_buf(0 as vim.WinNr, item.bufnr)
+    end
     vim.api.nvim_win_set_cursor(0 as vim.WinNr, {item.lnum, item.col})
   end
 end

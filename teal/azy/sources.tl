@@ -143,10 +143,11 @@ end
 
 function Sources.qf_items(elems: {vim.QfItem}): {AzyElement}
   return vim.tbl_map(function(e: vim.QfItem): AzyElement
+    local fname: string = utils.path.shorten(e.filename or vim.api.nvim_buf_get_name(e.bufnr))
     return {
       search_text = e.text,
       extra_infos = {
-        { utils.path.shorten(e.filename), "Comment" },
+        { fname, "Comment" },
         { ":", "Comment" },
         { tostring(e.lnum), "Function" },
         { ":", "Comment" },

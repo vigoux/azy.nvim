@@ -143,10 +143,11 @@ end
 
 function Sources.qf_items(elems)
    return vim.tbl_map(function(e)
+      local fname = utils.path.shorten(e.filename or vim.api.nvim_buf_get_name(e.bufnr))
       return {
          search_text = e.text,
          extra_infos = {
-            { utils.path.shorten(e.filename), "Comment" },
+            { fname, "Comment" },
             { ":", "Comment" },
             { tostring(e.lnum), "Function" },
             { ":", "Comment" },
