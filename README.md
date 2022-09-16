@@ -36,6 +36,10 @@ These builtin functions return a function suitable for
   vim.keymap.set("n", "<Leader>e", require'azy.builtins'.files(), {})
 ```
 
+Examples of how to use the functions below can be found
+[here](https://github.com/vigoux/azy.nvim/wiki/Examples). This is
+editable by everyone so feel free to add your lines there.
+
 ## Builtins
 
 - `azy.builtins.files(paths)`: files under `paths`. Respects both the local `.gitignore` file and `.ignore`.
