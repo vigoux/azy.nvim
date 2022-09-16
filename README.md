@@ -1,3 +1,5 @@
+![azy](https://user-images.githubusercontent.com/39092278/190636426-0e94f07f-94a2-4226-90d8-425cfa0c38eb.gif)
+
 # `azy.nvim` fuzzy finder for `neovim` based on `fzy`
 
 This plugin provides a simple UI to select an item from a list.
@@ -34,7 +36,7 @@ These builtin functions return a function suitable for
   vim.keymap.set("n", "<Leader>e", require'azy.builtins'.files(), {})
 ```
 
-## Builtins
+## Builtins
 
 - `azy.builtins.files(paths)`: files under `paths`. Respects both the local `.gitignore` file and `.ignore`.
 - `azy.builtins.files_contents(paths)`: contents of the files under `paths`
@@ -42,7 +44,7 @@ These builtin functions return a function suitable for
 - `azy.builtins.buffers()`: opened buffers
 - `azy.builtins.quickfix()`: items in the quickfix list
 
-### LSP-related
+### LSP-related
 
 - `azy.builtins.lsp.references()`: references to the symbol under the cursor
 - `azy.builtins.lsp.workspace_symbols()`: symbols defined in the current workspace
