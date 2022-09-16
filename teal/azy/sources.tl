@@ -93,9 +93,9 @@ local function list_files(paths: {string}, config: Sources.FilesOptions): {strin
     paths = { "." }
 
     if vim.fn.executable "fd" == 1 then
-      return vim.fn.systemlist "fd"
+      return vim.fn.systemlist {"fd", "--type", "f"}
     elseif vim.fn.executable "fdfind" == 1 then
-      return vim.fn.systemlist "fdfind"
+      return vim.fn.systemlist {"fdfind", "--type", "f"}
     elseif in_git then
       return utils.git "ls-files"
     end
