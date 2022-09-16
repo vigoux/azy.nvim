@@ -34,10 +34,15 @@ These builtin functions return a function suitable for
   vim.keymap.set("n", "<Leader>e", require'azy.builtins'.files(), {})
 ```
 
-The available functions are:
+## Builtins
+
 - `azy.builtins.files(paths)`: files under `paths`. Respects both the local `.gitignore` file and `.ignore`.
 - `azy.builtins.help()`: help tags, opens the selected tag on confirm
 - `azy.builtins.buffers()`: opened buffers
+
+### LSP-related
+
+- `azy.builtins.references()`: references to the symbol under the cursor
 
 ## Performances
 

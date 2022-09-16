@@ -17,6 +17,9 @@ local Sources = {FilesOptions = {}, }
 
 
 
+
+
+
 local function is_ignored(path, patterns)
    for _, p in ipairs(patterns) do
       if p:match_str(path) then
@@ -136,6 +139,22 @@ function Sources.buffers()
    end
 
    return ret
+end
+
+function Sources.qf_items(elems)
+   return vim.tbl_map(function(e)
+      return {
+         search_text = e.text,
+         extra_infos = {
+            { utils.path.shorten(e.filename), "Comment" },
+            { ":", "Comment" },
+            { tostring(e.lnum), "Function" },
+            { ":", "Comment" },
+            { tostring(e.col), "Function" },
+         },
+         extra = e,
+      }
+   end, elems)
 end
 
 return Sources

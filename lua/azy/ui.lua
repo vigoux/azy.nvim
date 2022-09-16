@@ -188,7 +188,11 @@ function AzyUi.confirm()
    AzyUi._close()
    local selected = AzyUi._choices:selected()
    if selected then
-      pcall(AzyUi._callback, AzyUi._search_text_cache[selected].content)
+      if DEBUG then
+         AzyUi._callback(AzyUi._search_text_cache[selected].content)
+      else
+         pcall(AzyUi._callback, AzyUi._search_text_cache[selected].content)
+      end
    end
    AzyUi._destroy()
 end

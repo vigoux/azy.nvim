@@ -7,8 +7,33 @@ global record AzyElement
 end
 
 global record vim
-  type BufNr = integer
-  type WinNr = integer
+  record BufNr
+  end
+
+  record WinNr
+  end
+
+  record QfItem
+    bufnr: BufNr
+    filename: string
+
+    lnum: integer
+    end_lnum: integer
+    col: integer
+    end_col: integer
+
+    text: string
+    type: string
+    valid: integer
+
+
+    -- Not really useful stuff
+    nr: integer
+    vcol: integer
+    module: string
+    pattern: string
+  end
+
   record o
     lines: integer
     columns: integer
@@ -32,7 +57,7 @@ global record vim
 
   record keymap
     record SetOption
-      buffer: integer|boolean
+      buffer: BufNr|boolean
     end
     set: function(string|{string}, string, function()|string, SetOption)
   end
@@ -206,6 +231,14 @@ global record vim
       err: string|nil
     end
 
+    record LspOnListOptions
+      record Arg
+        items: {QfItem}
+        title: string
+      end
+      on_list: function(Arg)
+    end
+
     record LspClient
       request_sync: function(string, any, integer, integer): LspResult
       offset_encoding: string|nil
@@ -216,7 +249,6 @@ global record vim
       end
     end
 
-
     record util
       apply_text_edits: function({LspTextEdit}, integer, string)
       make_position_params: function(): any
@@ -225,6 +257,13 @@ global record vim
 
     record protocol
       CompletionItemKind: {integer:string}
+    end
+
+    record buf
+      record LspRefContext
+        includeDeclaration: boolean
+      end
+      references: function(LspRefContext, LspOnListOptions)
     end
 
     buf_request_sync: function(integer, string, any): {integer:LspResult}, string|nil

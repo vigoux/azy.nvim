@@ -14,6 +14,9 @@ local record Sources
 
   -- Buffers source
   buffers: function(): {AzyElement}
+
+  -- quickfix items
+  qf_items: function({vim.QfItem}): {AzyElement}
 end
 
 -- Copied from complementree
@@ -136,6 +139,22 @@ function Sources.buffers(): {AzyElement}
   end
 
   return ret
+end
+
+function Sources.qf_items(elems: {vim.QfItem}): {AzyElement}
+  return vim.tbl_map(function(e: vim.QfItem): AzyElement
+    return {
+      search_text = e.text,
+      extra_infos = {
+        { utils.path.shorten(e.filename), "Comment" },
+        { ":", "Comment" },
+        { tostring(e.lnum), "Function" },
+        { ":", "Comment" },
+        { tostring(e.col), "Function" },
+      },
+      extra = e,
+    }
+  end, elems)
 end
 
 return Sources
