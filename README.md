@@ -42,7 +42,7 @@ These builtin functions return a function suitable for
 
 ### LSP-related
 
-- `azy.builtins.references()`: references to the symbol under the cursor
+- `azy.builtins.lsp.references()`: references to the symbol under the cursor
 
 ## Performances
 
