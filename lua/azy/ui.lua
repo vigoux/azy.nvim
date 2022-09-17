@@ -105,10 +105,14 @@ function AzyUi.create(content, callback)
          toel = { content = e }
       end
       if AzyUi._search_text_cache[toel.content.search_text] then
-         error(string.format("Collision in search text cache: '%s'", toel.content.search_text))
-      else
-         AzyUi._search_text_cache[toel.content.search_text] = toel
+         vim.notify(
+         string.format("Collision in search text cache: '%s'", toel.content.search_text),
+         vim.log.levels.INFO,
+         {
+            title = "azy.nvim",
+         })
       end
+      AzyUi._search_text_cache[toel.content.search_text] = toel
       all_lines[#all_lines + 1] = toel.content.search_text
       return toel
    end, content)

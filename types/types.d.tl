@@ -340,7 +340,18 @@ global record vim
 
   list_extend: function<T>({T}, {T}, integer|nil, integer|nil): {T}
 
-  notify: function(string)
+  record log
+    record levels
+      TRACE: integer
+      DEBUG: integer
+      INFO: integer
+      WARN: integer
+      ERROR: integer
+      OFF: integer
+    end
+  end
+
+  notify: function(string, integer, {any:any})
   pretty_print: function(...: any)
   inspect: function(...: any): string
 

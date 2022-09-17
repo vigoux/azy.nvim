@@ -146,8 +146,9 @@ function Sources.files_contents(paths, cfg)
    for i = 1, #files do
       local file = io.open(files[i])
       if file then
-         local lnum = 1
+         local lnum = 0
          for line, _ in function() return file:read() end do
+            lnum = lnum + 1
             if #line > 0 then
                ret[#ret + 1] = {
                   search_text = fname_format(files[i], lnum) .. line,
@@ -160,9 +161,9 @@ function Sources.files_contents(paths, cfg)
                      filename = files[i],
                      lnum = lnum,
                      col = 0,
+                     valid = 1,
                   },
                }
-               lnum = lnum + 1
             end
          end
       end

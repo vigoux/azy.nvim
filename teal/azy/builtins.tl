@@ -35,7 +35,7 @@ end
 
 function Builtins.files_contents(paths: {string}, opts: sources.FilesOptions): function()
   return function()
-    ui.create(sources.files_contents(paths, opts), sinks.open_file)
+    ui.create(sources.files_contents(paths, opts), sinks.qf_item)
   end
 end
 

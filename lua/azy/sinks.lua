@@ -4,14 +4,18 @@ local Sinks = {}
 
 
 
-function Sinks.open_file(elem, options)
+local function open(fname, options)
    if options.vsplit then
-      vim.cmd.vsplit(elem.search_text)
+      vim.cmd.vsplit(fname)
    elseif options.split then
-      vim.cmd.split(elem.search_text)
+      vim.cmd.split(fname)
    else
-      vim.cmd.edit(elem.search_text)
+      vim.cmd.edit(fname)
    end
+end
+
+function Sinks.open_file(elem, options)
+   open(elem.search_text, options)
 end
 
 function Sinks.help_tag(elem, options)
@@ -26,11 +30,13 @@ function Sinks.qf_item(elem, options)
    local item = elem.extra
    if item and item.valid == 1 then
       if item.filename then
-         Sinks.open_file(elem, options)
+         open(item.filename, options)
       else
          vim.api.nvim_win_set_buf(0, item.bufnr)
       end
       vim.api.nvim_win_set_cursor(0, { item.lnum, item.col })
+   else
+      error("Got an invalid item")
    end
 end
 
