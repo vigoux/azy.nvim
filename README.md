@@ -74,7 +74,10 @@ the problem, and I'll be glad to look into it.
 Note though that on reasonably sized word lists, you
 should not encounter any problem.
 
-But for the record, it took (on my machine) approximately 1s to filter
-a 400K entries list to `azy.nvim`.
+Furthermore, using an asynchronous UI, as the results are
+incrementally sorted, one should not _feel_ any blocking point.
+For the record, using the asychronous UI, search in a directory with
+more than 300K does not lead to any blocking (any update takes less
+that 10ms).
 
 [telescope.nvim]: https://github.com/nvim-telescope/telescope.nvim
