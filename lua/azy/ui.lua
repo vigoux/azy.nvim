@@ -51,28 +51,6 @@ local AzyLine = {}
 
 
 
-
-
-
-
-
-
-
-
-local function format_line(line, selected)
-   if selected then
-      if not line._selected_fmt then
-         line._selected_fmt = "> " .. line.content.search_text
-      end
-      return line._selected_fmt, 2
-   else
-      if not line._raw_fmt then
-         line._raw_fmt = "  " .. line.content.search_text
-      end
-      return line._raw_fmt, 2
-   end
-end
-
 local AzyUi = {}
 
 
@@ -365,16 +343,16 @@ function AzyUi._redraw()
       local lines_to_draw = {}
 
 
-      local hl_offset = 0
+      local hl_offset = 2
       time_this("Build lines", function()
          for_each_displayed_line(function(line)
-            local l, off = format_line(line, line == selected)
-            if hl_offset == 0 then
-               hl_offset = off
-            elseif hl_offset ~= off then
-               error("Inconsistent highlight offset")
+            local preff
+            if line == selected then
+               preff = "> "
+            else
+               preff = "  "
             end
-            lines_to_draw[#lines_to_draw + 1] = l
+            lines_to_draw[#lines_to_draw + 1] = preff .. line.content.search_text
          end)
       end)
 
