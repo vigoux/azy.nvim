@@ -12,6 +12,10 @@ It has the following features:
 - Lua / C mix: this plugin is very much an lua interface to [fzy], so
   the performance-critical parts are as fast as they could be.
 
+You can join us of [the matrix
+room](https://matrix.to/#/#azy.nvim:matrix.org) to ask any question
+or suggestion !
+
 ## Installation
 
 As this plugin requires the compilation of a small C library, you will
