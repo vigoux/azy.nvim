@@ -28,7 +28,7 @@ end
 
 function Sinks.qf_item(elem: AzyElement, options: AzyCbModifiers)
   local item = elem.extra as vim.QfItem
-  if item and item.valid == 1 then
+  if item and (item.filename ~= nil or item.bufnr ~= nil) then
     if item.filename then
       open(item.filename, options)
     else
@@ -36,7 +36,7 @@ function Sinks.qf_item(elem: AzyElement, options: AzyCbModifiers)
     end
     vim.api.nvim_win_set_cursor(0 as vim.WinNr, {item.lnum, item.col})
   else
-    error "Got an invalid item"
+    error("Got an invalid item " .. vim.inspect(item))
   end
 end
 
