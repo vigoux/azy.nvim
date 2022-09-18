@@ -9,6 +9,8 @@ It has the following features:
   threads and allows for very fast search
 - Both asynchronous and synchronous UIs: asynchronous UIs allow to
   incrementally add results to match against
+- Lua / C mix: this plugin is very much an lua interface to [fzy], so
+  the performance-critical parts are as fast as they could be.
 
 ## Installation
 
@@ -90,3 +92,4 @@ configurability.
 
 
 [telescope.nvim]: https://github.com/nvim-telescope/telescope.nvim
+[fzy]: https://github.com/jhawthorn/fzy
