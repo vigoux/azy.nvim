@@ -291,6 +291,7 @@ global record vim
       end
       references: function(LspRefContext, LspOnListOptions)
       workspace_symbol: function(string, LspOnListOptions)
+      document_symbol: function(LspOnListOptions)
     end
 
     buf_request_sync: function(integer, string, any): {integer:LspResult}, string|nil

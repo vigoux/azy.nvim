@@ -17,6 +17,7 @@ local Builtins = {lsp = {}, }
 
 
 
+
 local function fd_transform(el)
    return { search_text = utils.path.shorten(el) }
 end
@@ -69,6 +70,16 @@ end
 
 function Builtins.lsp.references()
    return lsp_on_list(vim.lsp.buf.references, { includeDeclaration = true })
+end
+
+function Builtins.lsp.document_symbol()
+   return function()
+      vim.lsp.buf.document_symbol({
+         on_list = function(items)
+            ui.create(sources.qf_items(items.items), sinks.qf_item)
+         end,
+      })
+   end
 end
 
 function Builtins.lsp.workspace_symbols()

@@ -14,6 +14,7 @@ local record Builtins
   record lsp
     references: function(): function()
     workspace_symbols: function(): function()
+    document_symbol: function(): function()
   end
 end
 
@@ -69,6 +70,16 @@ end
 
 function Builtins.lsp.references(): function()
   return lsp_on_list(vim.lsp.buf.references, { includeDeclaration = true })
+end
+
+function Builtins.lsp.document_symbol(): function()
+  return function()
+    vim.lsp.buf.document_symbol({
+      on_list = function(items: vim.lsp.LspOnListOptions.Arg)
+        ui.create(sources.qf_items(items.items), sinks.qf_item)
+      end
+    })
+  end
 end
 
 function Builtins.lsp.workspace_symbols(): function()

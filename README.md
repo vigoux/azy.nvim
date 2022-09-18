@@ -57,6 +57,7 @@ editable by everyone so feel free to add your lines there.
 ### LSP-related
 
 - `azy.builtins.lsp.references()`: references to the symbol under the cursor
+- `azy.builtins.lsp.document_symbol()`: symbols in the current buffer
 - `azy.builtins.lsp.workspace_symbols()`: symbols defined in the current workspace
 
 ## Customizing
