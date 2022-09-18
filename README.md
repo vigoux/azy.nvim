@@ -3,12 +3,12 @@
 # `azy.nvim` fuzzy finder for `neovim` based on `fzy`
 
 This plugin provides a simple UI to select an item from a list.
-It is very much my own version of the multitude of plugins like
-[telescope.nvim].
 
-The goal of this plugin will be different than [telescope.nvim]. This
-plugin focuses on speed and non-intrusivness rather that
-configurability.
+It has the following features:
+- Fast fuzzy matching: powered by [fzy], the search runs on multiple
+  threads and allows for very fast search
+- Both asynchronous and synchronous UIs: asynchronous UIs allow to
+  incrementally add results to match against
 
 ## Installation
 
@@ -79,5 +79,14 @@ incrementally sorted, one should not _feel_ any blocking point.
 For the record, using the asychronous UI, search in a directory with
 more than 300K does not lead to any blocking (any update takes less
 that 10ms).
+
+## Acknowledgement
+
+This project can be considered my own version ov [telescope.nvim].
+
+The goal of this plugin will be different than [telescope.nvim]. This
+plugin focuses on speed and non-intrusivness rather that
+configurability.
+
 
 [telescope.nvim]: https://github.com/nvim-telescope/telescope.nvim
