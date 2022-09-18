@@ -121,7 +121,9 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   AzyUi._choices:add(all_lines)
 
   AzyUi._input_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_option(AzyUi._input_buf, "bufhidden", "wipe")
   AzyUi._output_buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_option(AzyUi._output_buf, "bufhidden", "wipe")
 
   -- Now create the windows
   local columns = vim.o.columns

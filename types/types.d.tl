@@ -210,6 +210,7 @@ global record vim
     nvim_buf_set_lines: function(BufNr, integer, integer, boolean, {string})
     nvim_buf_set_text: function(BufNr, integer, integer, integer, integer, {string})
     nvim_buf_set_extmark: function(BufNr, NSId, integer, integer, SetExtmarkOptions)
+    nvim_buf_set_option: function(BufNr, string, any)
     nvim_create_buf: function(boolean, boolean): BufNr
     nvim_list_bufs: function(): {BufNr}
 
