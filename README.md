@@ -46,6 +46,16 @@ Examples of how to use the functions below can be found
 [here](https://github.com/vigoux/azy.nvim/wiki/Examples). This is
 editable by everyone so feel free to add your lines there.
 
+## Controls
+
+In an `azy` UI, you can do the following:
+- `<Down>` moves the cursor to the next
+- `<Up>` moves the cursor to the previous item
+- `<CR>` confirms the selection
+- `<C-V>` confirm but open in a vertical split
+- `<C-H>` confirm but open in a split
+- `<ESC>` (only in normal mode) exists without confirm
+
 ## Builtins
 
 - `azy.builtins.files(paths)`: files under `paths`. Respects both the local `.gitignore` file and `.ignore`.
