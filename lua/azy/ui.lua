@@ -47,7 +47,7 @@ else
    end
 end
 
-local AzyLine = {}
+
 
 
 
@@ -121,7 +121,9 @@ function AzyUi.create(content, callback)
    AzyUi._choices:add(all_lines)
 
    AzyUi._input_buf = vim.api.nvim_create_buf(false, true)
+   vim.api.nvim_buf_set_option(AzyUi._input_buf, "bufhidden", "wipe")
    AzyUi._output_buf = vim.api.nvim_create_buf(false, true)
+   vim.api.nvim_buf_set_option(AzyUi._output_buf, "bufhidden", "wipe")
 
 
    local columns = vim.o.columns
