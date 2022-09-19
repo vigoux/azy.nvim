@@ -96,8 +96,10 @@ function AzyUi.create(content, callback)
    AzyUi._prompt = ""
 
    AzyUi._search_text_cache = {}
+   AzyUi._source_lines = {}
    local all_lines = {}
-   AzyUi._source_lines = vim.tbl_map(function(e)
+   for i = 1, #content do
+      local e = content[i]
       local toel
       if type(e) == "string" then
          toel = { content = { search_text = e } }
@@ -105,17 +107,13 @@ function AzyUi.create(content, callback)
          toel = { content = e }
       end
       if AzyUi._search_text_cache[toel.content.search_text] then
-         vim.notify(
-         string.format("Collision in search text cache: '%s'", toel.content.search_text),
-         vim.log.levels.INFO,
-         {
-            title = "azy.nvim",
-         })
+         log(string.format("Collision in search text cache: '%s'", toel.content.search_text))
+      else
+         AzyUi._search_text_cache[toel.content.search_text] = toel
+         AzyUi._source_lines[#AzyUi._source_lines + 1] = toel
+         all_lines[#all_lines + 1] = toel.content.search_text
       end
-      AzyUi._search_text_cache[toel.content.search_text] = toel
-      all_lines[#all_lines + 1] = toel.content.search_text
-      return toel
-   end, content)
+   end
 
    AzyUi._choices = fzy.create()
    AzyUi._choices:add(all_lines)
@@ -208,13 +206,12 @@ function AzyUi.add(lines)
          end
 
          if AzyUi._search_text_cache[toel.content.search_text] then
-            error(string.format("Collision in search text cache: '%s'", toel.content.search_text))
+            log(string.format("Collision in search text cache: '%s'", toel.content.search_text))
          else
             AzyUi._search_text_cache[toel.content.search_text] = toel
+            all_lines[#all_lines + 1] = toel.content.search_text
+            AzyUi._source_lines[#AzyUi._source_lines + 1] = toel
          end
-
-         all_lines[#all_lines + 1] = toel.content.search_text
-         AzyUi._source_lines[#AzyUi._source_lines + 1] = toel
       end
 
       time_this("Filter incremental", function()
