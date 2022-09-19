@@ -33,6 +33,17 @@ Using `packer.nvim`:
 use { 'vigoux/azy.nvim', run = 'make lib' }
 ```
 
+## Setup
+
+You can configure `azy` as any other plugin using the `azy.setup`
+function. Note though that this is not required for this plugin to
+work, as it only configures the features of `azy`:
+```lua
+require'azy'.setup {
+  preview = false -- Whether to preview selected items on the fly (this is an unstable feature, feedback appreciated)
+}
+```
+
 ## Usage
 
 This plugin provides a bunch of builtin searchs.

@@ -89,11 +89,21 @@ local AzyUi = {}
 
 
 
+
+
+local function create_throwaway()
+   local buf = vim.api.nvim_create_buf(false, true)
+   vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+   return buf
+end
+
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
    AzyUi._prompt = ""
+
+   AzyUi._preview_buffer_cache = {}
 
    AzyUi._search_text_cache = {}
    AzyUi._source_lines = {}
@@ -118,14 +128,19 @@ function AzyUi.create(content, callback)
    AzyUi._choices = fzy.create()
    AzyUi._choices:add(all_lines)
 
-   AzyUi._input_buf = vim.api.nvim_create_buf(false, true)
-   vim.api.nvim_buf_set_option(AzyUi._input_buf, "bufhidden", "wipe")
-   AzyUi._output_buf = vim.api.nvim_create_buf(false, true)
-   vim.api.nvim_buf_set_option(AzyUi._output_buf, "bufhidden", "wipe")
+   AzyUi._input_buf = create_throwaway()
+   AzyUi._output_buf = create_throwaway()
 
 
    local columns = vim.o.columns
    local lines = vim.o.lines
+
+   local output_width
+   if config.preview then
+      output_width = math.ceil(columns / 2)
+   else
+      output_width = columns
+   end
 
    local input_row = lines - (HEIGHT + 2)
 
@@ -151,7 +166,7 @@ function AzyUi.create(content, callback)
    AzyUi._output_win = vim.api.nvim_open_win(AzyUi._output_buf, false, {
       relative = 'editor',
       anchor = 'NW',
-      width = columns,
+      width = output_width,
       height = HEIGHT,
       row = input_row + 1,
       col = 0,
@@ -162,10 +177,28 @@ function AzyUi.create(content, callback)
    })
    vim.api.nvim_win_set_option(AzyUi._output_win, 'winblend', 0)
 
+   if config.preview then
+      if AzyUi._preview_win and vim.api.nvim_win_is_valid(AzyUi._preview_win) then
+         vim.api.nvim_win_close(AzyUi._preview_win, true)
+      end
+      AzyUi._preview_win = vim.api.nvim_open_win(create_throwaway(), false, {
+         relative = 'editor',
+         anchor = 'NW',
+         width = math.floor(columns / 2),
+         height = HEIGHT,
+         row = input_row + 1,
+         col = math.ceil(columns / 2),
+         focusable = false,
+         style = 'minimal',
+         border = 'none',
+      })
+      vim.api.nvim_win_set_option(AzyUi._preview_win, 'winblend', 0)
+   end
+
 
    vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
       buffer = AzyUi._input_buf,
-      callback = AzyUi._update_output_buf,
+      callback = AzyUi._update_ui,
       group = AUGROUP_NAME,
    })
 
@@ -270,6 +303,18 @@ function AzyUi._close()
    if vim.api.nvim_win_is_valid(AzyUi._output_win) then
       vim.api.nvim_win_close(AzyUi._output_win, true)
    end
+
+   if config.preview then
+      for _, bnr in pairs(AzyUi._preview_buffer_cache) do
+         if vim.api.nvim_buf_is_valid(bnr) then
+            vim.api.nvim_buf_delete(bnr, { force = true })
+         end
+      end
+
+      if vim.api.nvim_win_is_valid(AzyUi._preview_win) then
+         vim.api.nvim_win_close(AzyUi._preview_win, true)
+      end
+   end
 end
 
 function AzyUi.exit()
@@ -284,7 +329,7 @@ function AzyUi._destroy()
    AzyUi._choices = nil
 end
 
-function AzyUi._update_output_buf()
+function AzyUi._update_ui()
    local iline = vim.api.nvim_buf_get_lines(AzyUi._input_buf, 0, -1, true)[1]
 
    if AzyUi._prompt == iline then
@@ -310,6 +355,8 @@ end
 local set_extmark = vim.api.nvim_buf_set_extmark
 function AzyUi._redraw()
    time_this("Redraw", function()
+
+
       local start = 1
       local selected, current_selection = AzyUi._selected()
       current_selection = current_selection or 1
@@ -400,6 +447,27 @@ function AzyUi._redraw()
             end
          end)
       end)
+
+      if config.preview then
+         time_this("Update preview", function()
+            if not selected then
+               log("Nothing selected")
+               vim.api.nvim_win_set_buf(AzyUi._preview_win, create_throwaway())
+            else
+               local cache_buf = AzyUi._preview_buffer_cache[selected]
+               if cache_buf then
+                  vim.api.nvim_win_set_buf(AzyUi._preview_win, cache_buf)
+               else
+                  vim.api.nvim_win_call(AzyUi._preview_win, function()
+                     AzyUi._callback(selected.content, { preview = true })
+                     vim.wo.cursorline = true
+                     vim.wo.cursorlineopt = "line"
+                  end)
+                  AzyUi._preview_buffer_cache[selected] = vim.api.nvim_win_get_buf(AzyUi._preview_win)
+               end
+            end
+         end)
+      end
    end)
 end
 

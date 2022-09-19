@@ -9,6 +9,7 @@ end
 global record AzyCbModifiers
   vsplit: boolean
   split: boolean
+  preview: boolean
 end
 
 global record vim
@@ -39,9 +40,22 @@ global record vim
     pattern: string
   end
 
+  record filetype
+    record FtMatchOptions
+      buf: BufNr
+    end
+    match: function(FtMatchOptions)
+  end
+
   record o
     lines: integer
     columns: integer
+    eventignore: string
+  end
+
+  record wo
+    cursorline: boolean
+    cursorlineopt: string
   end
 
   record cmd
@@ -185,6 +199,11 @@ global record vim
       virt_lines: {{{string, string}}}
     end
 
+    record BufDeleteOptions
+      force: boolean
+      unload: boolean
+    end
+
     type NSId = integer
 
     nvim_feedkeys: function(string, string, boolean)
@@ -204,9 +223,11 @@ global record vim
 
     nvim_buf_add_highlight: function(BufNr, NSId, string, integer, integer, integer)
     nvim_buf_clear_namespace: function(BufNr, NSId, integer, integer)
+    nvim_buf_delete: function(BufNr, BufDeleteOptions)
     nvim_buf_get_lines: function(BufNr, integer, integer, boolean): {string}
     nvim_buf_get_name: function(BufNr): string
     nvim_buf_get_option: function(BufNr, string): any
+    nvim_buf_is_valid: function(BufNr): boolean
     nvim_buf_set_lines: function(BufNr, integer, integer, boolean, {string})
     nvim_buf_set_text: function(BufNr, integer, integer, integer, integer, {string})
     nvim_buf_set_extmark: function(BufNr, NSId, integer, integer, SetExtmarkOptions)
@@ -215,7 +236,9 @@ global record vim
     nvim_list_bufs: function(): {BufNr}
 
     nvim_open_win: function(BufNr, boolean, OpenWinOptions): WinNr
+    nvim_win_call: function(WinNr, function())
     nvim_win_close: function(WinNr, boolean)
+    nvim_win_get_buf: function(WinNr): BufNr
     nvim_win_set_buf: function(WinNr, BufNr)
     nvim_win_set_option: function(WinNr, string, any)
     nvim_win_set_cursor: function(WinNr, {integer, integer})

@@ -4,6 +4,10 @@ local Config = {}
 
 
 
+
+
+Config.preview = false
+
 local function hl_group(name, options)
    local hl_name = "Azy" .. name
    vim.api.nvim_set_hl(0, hl_name, options)

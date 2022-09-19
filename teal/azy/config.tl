@@ -1,8 +1,12 @@
 local record Config
+  preview: boolean
+
   HL_MATCH: string
   HL_DIM: string
   HL_STANDOUT: string
 end
+
+Config.preview = false
 
 local function hl_group(name: string, options: vim.api.SetHlOptions): string
   local hl_name = "Azy" .. name

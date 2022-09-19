@@ -19,6 +19,8 @@ function Sinks.open_file(elem, options)
 end
 
 function Sinks.help_tag(elem, options)
+   if options.preview then return end
+
    if options.vsplit then
       vim.cmd(string.format("vertical help %s", elem.search_text))
    else
