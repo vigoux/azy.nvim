@@ -1,3 +1,6 @@
+nix-build:
+	nix-shell --pure --run "make build"
+
 build: lib
 	tl build
 
@@ -12,3 +15,4 @@ test:
 
 lib:
 	make -C lua/fzy/
+

@@ -4,6 +4,8 @@ pkgs.mkShell {
       pkgs.neovim
       pkgs.stylua
       pkgs.git
+      pkgs.pkg-config
+      pkgs.luajit
       pkgs.luajitPackages.busted
       pkgs.luajitPackages.tl
     ];
