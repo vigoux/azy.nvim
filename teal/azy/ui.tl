@@ -455,7 +455,9 @@ function AzyUi._redraw()
         else
           local cache_buf = AzyUi._preview_buffer_cache[selected]
           if cache_buf then
-            vim.api.nvim_win_set_buf(AzyUi._preview_win, cache_buf)
+            vim.api.nvim_win_call(AzyUi._preview_win, function()
+              AzyUi._callback(selected.content, { preview = cache_buf })
+            end)
           else
             vim.api.nvim_win_call(AzyUi._preview_win, function()
               AzyUi._callback(selected.content, { preview = true })

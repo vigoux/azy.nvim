@@ -30,8 +30,11 @@ end
 
 function Sinks.qf_item(elem, options)
    local item = elem.extra
+   local preview_param = options.preview
    if item and (item.filename ~= nil or item.bufnr ~= nil) then
-      if item.filename then
+      if preview_param and not (type(preview_param) == "boolean") then
+         vim.api.nvim_win_set_buf(0, preview_param)
+      elseif item.filename then
          open(item.filename, options)
       else
          vim.api.nvim_win_set_buf(0, item.bufnr)

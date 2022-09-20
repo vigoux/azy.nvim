@@ -9,7 +9,7 @@ end
 global record AzyCbModifiers
   vsplit: boolean
   split: boolean
-  preview: boolean
+  preview: boolean|vim.BufNr
 end
 
 global record vim

@@ -30,8 +30,11 @@ end
 
 function Sinks.qf_item(elem: AzyElement, options: AzyCbModifiers)
   local item = elem.extra as vim.QfItem
+  local preview_param = options.preview
   if item and (item.filename ~= nil or item.bufnr ~= nil) then
-    if item.filename then
+    if preview_param and not preview_param is boolean then
+      vim.api.nvim_win_set_buf(0 as vim.WinNr, preview_param as vim.BufNr)
+    elseif item.filename then
       open(item.filename, options)
     else
       vim.api.nvim_win_set_buf(0 as vim.WinNr, item.bufnr)
