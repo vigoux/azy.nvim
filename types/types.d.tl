@@ -358,6 +358,7 @@ global record vim
   endswith: function(string, string): boolean
   str_byteindex: function(string, integer, boolean|nil): integer
 
+  tbl_extend: function<T>(string, ...: T): T
   tbl_deep_extend: function(string, ...: table): table
   tbl_map: function<T, K>((function(T): K), {T}): {K}
   tbl_filter: function<T>((function(T): boolean), {T}): {T}

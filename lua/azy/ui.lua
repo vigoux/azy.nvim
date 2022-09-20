@@ -97,6 +97,23 @@ local function create_throwaway()
    return buf
 end
 
+local function create_win(check, buf, enter, options)
+   if check and vim.api.nvim_win_is_valid(check) then
+      vim.api.nvim_win_close(check, true)
+   end
+   local winconfig = vim.tbl_extend('force', {
+      relative = 'editor',
+      anchor = 'NW',
+      col = 0,
+      focusable = true,
+      style = 'minimal',
+      border = 'none',
+   }, options)
+   local win = vim.api.nvim_open_win(buf, enter, winconfig)
+   vim.api.nvim_win_set_option(win, 'winblend', 0)
+   return win
+end
+
 function AzyUi.create(content, callback)
    log("Creating with", #content, "elements")
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
@@ -128,6 +145,7 @@ function AzyUi.create(content, callback)
    AzyUi._choices = fzy.create()
    AzyUi._choices:add(all_lines)
 
+
    AzyUi._input_buf = create_throwaway()
    AzyUi._output_buf = create_throwaway()
 
@@ -144,46 +162,26 @@ function AzyUi.create(content, callback)
 
    local input_row = lines - (HEIGHT + 2)
 
-   if AzyUi._input_win and vim.api.nvim_win_is_valid(AzyUi._input_win) then
-      vim.api.nvim_win_close(AzyUi._input_win, true)
-   end
-   AzyUi._input_win = vim.api.nvim_open_win(AzyUi._input_buf, true, {
-      relative = 'editor',
-      anchor = 'NW',
+
+   AzyUi._input_win = create_win(AzyUi._input_win, AzyUi._input_buf, true, {
       width = columns,
       height = 1,
       row = input_row,
       col = 0,
       focusable = true,
-      style = 'minimal',
-      border = 'none',
    })
-   vim.api.nvim_win_set_option(AzyUi._input_win, 'winblend', 0)
 
-   if AzyUi._output_win and vim.api.nvim_win_is_valid(AzyUi._output_win) then
-      vim.api.nvim_win_close(AzyUi._output_win, true)
-   end
-   AzyUi._output_win = vim.api.nvim_open_win(AzyUi._output_buf, false, {
-      relative = 'editor',
-      anchor = 'NW',
+   AzyUi._output_win = create_win(AzyUi._output_win, AzyUi._output_buf, false, {
       width = output_width,
       height = HEIGHT,
       row = input_row + 1,
       col = 0,
       focusable = false,
-      style = 'minimal',
-      border = 'none',
       noautocmd = true,
    })
-   vim.api.nvim_win_set_option(AzyUi._output_win, 'winblend', 0)
 
    if config.preview then
-      if AzyUi._preview_win and vim.api.nvim_win_is_valid(AzyUi._preview_win) then
-         vim.api.nvim_win_close(AzyUi._preview_win, true)
-      end
-      AzyUi._preview_win = vim.api.nvim_open_win(create_throwaway(), false, {
-         relative = 'editor',
-         anchor = 'NW',
+      AzyUi._preview_win = create_win(AzyUi._preview_win, create_throwaway(), false, {
          width = math.floor(columns / 2),
          height = HEIGHT,
          row = input_row + 1,
@@ -193,6 +191,8 @@ function AzyUi.create(content, callback)
          border = 'none',
       })
       vim.api.nvim_win_set_option(AzyUi._preview_win, 'winblend', 0)
+      vim.api.nvim_win_set_option(AzyUi._preview_win, 'cursorline', true)
+      vim.api.nvim_win_set_option(AzyUi._preview_win, 'cursorlineopt', 'line')
    end
 
 
@@ -460,8 +460,6 @@ function AzyUi._redraw()
                else
                   vim.api.nvim_win_call(AzyUi._preview_win, function()
                      AzyUi._callback(selected.content, { preview = true })
-                     vim.wo.cursorline = true
-                     vim.wo.cursorlineopt = "line"
                   end)
                   AzyUi._preview_buffer_cache[selected] = vim.api.nvim_win_get_buf(AzyUi._preview_win)
                end
