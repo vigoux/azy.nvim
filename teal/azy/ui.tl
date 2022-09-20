@@ -440,7 +440,7 @@ function AzyUi._redraw()
           -- The highlight is offset by two characters
           set_extmark(AzyUi._output_buf, hl_ns, row - 1, hl - 1 + hl_offset, {
             end_col = hl + hl_offset,
-            hl_group = "Error",
+            hl_group = config.HL_MATCH,
           })
         end
       end)
