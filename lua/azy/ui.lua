@@ -191,8 +191,6 @@ function AzyUi.create(content, callback)
          border = 'none',
       })
       vim.api.nvim_win_set_option(AzyUi._preview_win, 'winblend', 0)
-      vim.api.nvim_win_set_option(AzyUi._preview_win, 'cursorline', true)
-      vim.api.nvim_win_set_option(AzyUi._preview_win, 'cursorlineopt', 'line')
    end
 
 
@@ -464,6 +462,9 @@ function AzyUi._redraw()
                   AzyUi._preview_buffer_cache[selected] = vim.api.nvim_win_get_buf(AzyUi._preview_win)
                end
             end
+
+            vim.api.nvim_win_set_option(AzyUi._preview_win, 'cursorline', true)
+            vim.api.nvim_win_set_option(AzyUi._preview_win, 'cursorlineopt', 'line')
          end)
       end
    end)
