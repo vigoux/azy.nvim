@@ -111,6 +111,7 @@ local function create_win(check, buf, enter, options)
    }, options)
    local win = vim.api.nvim_open_win(buf, enter, winconfig)
    vim.api.nvim_win_set_option(win, 'winblend', 0)
+   vim.api.nvim_win_set_option(win, 'wrap', false)
    return win
 end
 
