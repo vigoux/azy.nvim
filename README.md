@@ -1,5 +1,7 @@
 ![azy](https://user-images.githubusercontent.com/39092278/190636426-0e94f07f-94a2-4226-90d8-425cfa0c38eb.gif)
 
+__WARNING: This plugin is meant to be used with neovim 0.8__
+
 # `azy.nvim` fuzzy finder for `neovim` based on `fzy`
 
 This plugin provides a simple UI to select an item from a list.
