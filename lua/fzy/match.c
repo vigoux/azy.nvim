@@ -1,32 +1,38 @@
 #include <ctype.h>
 #include <float.h>
 #include <math.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 
-#include "match.h"
 #include "bonus.h"
+#include "match.h"
 
 #include "config.h"
 
-char *strcasechr(const char *s, char c) {
+char *
+strcasechr(const char *s, char c)
+{
 	typedef uint32_t long_t;
 	long_t *ws = NULL, w;
 	char u = toupper(c);
 	c = tolower(c);
-	if (c & 0x80) /* utf-8 bytes searched literally */
+	if (c & 0x80) { /* utf-8 bytes searched literally */
 		return strchr(s, c);
+	}
 chr:
 	for (; ws || (uintptr_t)s % sizeof(long_t); s++) {
-		if (*s == '\0')
+		if (*s == '\0') {
 			return NULL;
-		else if (*s == c)
+		}
+		else if (*s == c) {
 			return (char *)s;
-		else if (*s == u)
+		}
+		else if (*s == u) {
 			return (char *)s;
+		}
 	};
 	const long_t magic = (long_t) ~(-1ul / 0xff << 7);
 	const long_t cm = -1ul / 0xff * c;
@@ -34,12 +40,15 @@ chr:
 	for (ws = (long_t *)s;; s = (char *)++ws) {
 		w = (*ws | (*ws & ~magic) / 2) & magic;
 		w = (w + magic) & ((w ^ cm) + magic) & ((w ^ um) + magic);
-		if (w ^ ~magic)
+		if (w ^ ~magic) {
 			goto chr;
+		}
 	};
 }
 
-int has_match(const char *needle, const char *haystack) {
+int
+has_match(const char *needle, const char *haystack)
+{
 	while (*needle) {
 		char nch = *needle++;
 
@@ -70,7 +79,9 @@ struct match_struct {
 	score_t match_bonus[MATCH_MAX_LEN];
 };
 
-static void precompute_bonus(const char *haystack, score_t *match_bonus) {
+static void
+precompute_bonus(const char *haystack, score_t *match_bonus)
+{
 	/* Which positions are beginning of words */
 	char last_ch = '/';
 	for (int i = 0; haystack[i]; i++) {
@@ -80,8 +91,10 @@ static void precompute_bonus(const char *haystack, score_t *match_bonus) {
 	}
 }
 
-static void setup_match_struct(struct match_struct *match, const char *needle,
-			       const char *haystack) {
+static void
+setup_match_struct(struct match_struct *match, const char *needle,
+                   const char *haystack)
+{
 	match->needle_len = strlen(needle);
 	match->haystack_len = strlen(haystack);
 
@@ -89,17 +102,21 @@ static void setup_match_struct(struct match_struct *match, const char *needle,
 		return;
 	}
 
-	for (int i = 0; i < match->needle_len; i++)
+	for (int i = 0; i < match->needle_len; i++) {
 		match->lower_needle[i] = tolower(needle[i]);
+	}
 
-	for (int i = 0; i < match->haystack_len; i++)
+	for (int i = 0; i < match->haystack_len; i++) {
 		match->lower_haystack[i] = tolower(haystack[i]);
+	}
 
 	precompute_bonus(haystack, match->match_bonus);
 }
 
-static inline void match_row(const struct match_struct *match, int row, score_t *curr_D,
-			     score_t *curr_M, const score_t *last_D, const score_t *last_M) {
+static inline void
+match_row(const struct match_struct *match, int row, score_t *curr_D,
+          score_t *curr_M, const score_t *last_D, const score_t *last_M)
+{
 	int n = match->needle_len;
 	int m = match->haystack_len;
 	int i = row;
@@ -119,8 +136,8 @@ static inline void match_row(const struct match_struct *match, int row, score_t 
 			} else if (j) { /* i > 0 && j > 0*/
 				score = max(last_M[j - 1] + match_bonus[j],
 
-					    /* consecutive match, doesn't stack with match_bonus */
-					    last_D[j - 1] + SCORE_MATCH_CONSECUTIVE);
+				            /* consecutive match, doesn't stack with match_bonus */
+				            last_D[j - 1] + SCORE_MATCH_CONSECUTIVE);
 			}
 			curr_D[j] = score;
 			curr_M[j] = prev_score = max(score, prev_score + gap_score);
@@ -131,9 +148,12 @@ static inline void match_row(const struct match_struct *match, int row, score_t 
 	}
 }
 
-score_t match(const char *needle, const char *haystack) {
-	if (!*needle)
+score_t
+match(const char *needle, const char *haystack)
+{
+	if (!*needle) {
 		return SCORE_MIN;
+	}
 
 	struct match_struct match;
 	setup_match_struct(&match, needle, haystack);
@@ -180,9 +200,12 @@ score_t match(const char *needle, const char *haystack) {
 	return last_M[m - 1];
 }
 
-score_t match_positions(const char *needle, const char *haystack, size_t *positions) {
-	if (!*needle)
+score_t
+match_positions(const char *needle, const char *haystack, size_t *positions)
+{
+	if (!*needle) {
 		return SCORE_MIN;
+	}
 
 	struct match_struct match;
 	setup_match_struct(&match, needle, haystack);
@@ -202,9 +225,11 @@ score_t match_positions(const char *needle, const char *haystack, size_t *positi
 		 * matches needle. If the lengths of the strings are equal the
 		 * strings themselves must also be equal (ignoring case).
 		 */
-		if (positions)
-			for (int i = 0; i < n; i++)
+		if (positions) {
+			for (int i = 0; i < n; i++) {
 				positions[i] = i;
+			}
+		}
 		return SCORE_MAX;
 	}
 
@@ -249,8 +274,8 @@ score_t match_positions(const char *needle, const char *haystack, size_t *positi
 					 * previous character MUST be a match
 					 */
 					match_required =
-					    i && j &&
-					    M[i][j] == D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE;
+						i && j &&
+						M[i][j] == D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE;
 					positions[i] = j--;
 					break;
 				}

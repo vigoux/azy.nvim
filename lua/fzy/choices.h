@@ -26,7 +26,7 @@ typedef struct {
 
 	unsigned int worker_count;
 
-  char prompt[PROMPT_LEN];
+	char prompt[PROMPT_LEN];
 } choices_t;
 
 void choices_init(choices_t *c, int workers);

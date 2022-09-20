@@ -1,0 +1,18 @@
+# Uncrustify-0.72.0
+sp_cmt_cpp_start                = force
+nl_func_type_name               = add
+nl_func_decl_start              = remove
+nl_func_def_start               = remove
+nl_func_def_start_single        = remove
+nl_fdef_brace                   = add
+align_keep_tabs                 = true
+mod_full_brace_do               = add
+mod_full_brace_for              = add
+mod_full_brace_function         = add
+mod_full_brace_if               = add
+mod_full_brace_while            = add
+mod_sort_include                = true
+mod_case_brace                  = add
+# option(s) with 'not default' value: 14
+#
+
