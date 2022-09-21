@@ -60,6 +60,7 @@ global record vim
 
   record cmd
     metamethod __call: function(cmd, ...: string)
+    metamethod __index: function(cmd, string): function( ...: string)
     vertical: function(string, ...: string)
     vsplit: function(string)
     split: function(string)

@@ -2,6 +2,7 @@
 pkgs.mkShell {
     buildInputs = [
       pkgs.neovim
+      pkgs.uncrustify
       pkgs.stylua
       pkgs.git
       pkgs.pkg-config
