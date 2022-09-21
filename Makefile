@@ -16,3 +16,6 @@ test:
 lib:
 	make -C lua/fzy/
 
+clean:
+	rm -rf lua/azy/
+	make -C lua/fzy/ clean
