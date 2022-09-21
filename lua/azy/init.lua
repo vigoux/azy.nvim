@@ -5,7 +5,7 @@ local AzyInit = {}
 
 
 function AzyInit.setup(user_config)
-   config.preview = user_config.preview
+   config.cfg = vim.tbl_deep_extend("force", config.cfg, user_config)
 end
 
 return AzyInit

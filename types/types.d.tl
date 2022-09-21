@@ -71,6 +71,7 @@ global record vim
   end
 
   record fs
+    basename: function(string): string
     normalize: function(string): string
   end
 
@@ -360,7 +361,7 @@ global record vim
   str_byteindex: function(string, integer, boolean|nil): integer
 
   tbl_extend: function<T>(string, ...: T): T
-  tbl_deep_extend: function(string, ...: table): table
+  tbl_deep_extend: function<T>(string, ...: T): T
   tbl_map: function<T, K>((function(T): K), {T}): {K}
   tbl_filter: function<T>((function(T): boolean), {T}): {T}
   tbl_contains: function<T>({T}, T): boolean

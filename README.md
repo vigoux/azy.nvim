@@ -47,6 +47,7 @@ work, as it only configures the features of `azy`:
 ```lua
 require'azy'.setup {
   preview = false -- Whether to preview selected items on the fly (this is an unstable feature, feedback appreciated)
+  debug = false -- Enable debug output and timings in the UI
 }
 ```
 

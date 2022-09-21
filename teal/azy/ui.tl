@@ -3,49 +3,7 @@ local config = require'azy.config'
 local AUGROUP_NAME = "AzyUi"
 local hl_ns = vim.api.nvim_create_namespace 'azy'
 
-local log: function(...: any)
-local time_this: function(string, function())
-
 local HEIGHT = 20
-local DEBUG = vim.fn.exists "g:azy_ui_debug" == 1
-if DEBUG then
-  print("AzyUi debugging enabled")
-  log = function(...: any)
-    print("AzyUi:", ...)
-  end
-
-  local htime = vim.loop.hrtime
-
-  local level = 0
-  time_this = function(msg: string, f: function())
-    local arrow_head: string
-    if level > 0 then
-      arrow_head = vim.fn['repeat'](' ', 2 * level - 1)
-      log(arrow_head, msg)
-    else
-      log(msg)
-    end
-
-    level = level + 1
-    local t = htime()
-    f()
-    local stop_time = htime() - t
-    level = level - 1
-
-    if level > 0 then
-      log(arrow_head, msg, ":", stop_time / (1000 * 1000))
-    else
-      log(msg, ":", stop_time / (1000 * 1000))
-    end
-  end
-else
-  log = function()
-  end
-
-  time_this = function(_:string, f: function())
-    f()
-  end
-end
 
 local record AzyLine
   content: AzyElement
@@ -116,7 +74,7 @@ local function create_win(check: vim.WinNr, buf: vim.BufNr, enter: boolean, opti
 end
 
 function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElement, AzyCbModifiers))
-  log("Creating with", #content, "elements")
+  config.log("Creating with", #content, "elements")
   vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
   AzyUi._callback = callback or function(i: AzyElement) vim.notify(i.search_text) end
   AzyUi._prompt = ""
@@ -135,7 +93,7 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
       toel = { content = e }
     end
     if AzyUi._search_text_cache[toel.content.search_text] then
-      log(string.format("Collision in search text cache: '%s'", toel.content.search_text))
+      config.log(string.format("Collision in search text cache: '%s'", toel.content.search_text))
     else
       AzyUi._search_text_cache[toel.content.search_text] = toel
       AzyUi._source_lines[#AzyUi._source_lines + 1] = toel
@@ -155,7 +113,7 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   local lines = vim.o.lines
 
   local output_width: integer
-  if config.preview then
+  if config.cfg.preview then
     output_width = math.ceil(columns / 2)
   else
     output_width = columns
@@ -181,7 +139,7 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
     noautocmd = true,
   })
 
-  if config.preview then
+  if config.cfg.preview then
     AzyUi._preview_win = create_win(AzyUi._preview_win, create_throwaway(), false, {
       width = math.floor(columns / 2),
       height = HEIGHT,
@@ -224,8 +182,8 @@ end
 function AzyUi.add(lines: {AzyElement|string}): boolean
   -- as this can be called asynchronously, check that the ui is valid
   if not AzyUi._choices then return false end
-  time_this("Update incremental", function()
-    log(string.format("Will add %d elements to %d", #lines, #AzyUi._source_lines))
+  config.time_this("Update incremental", function()
+    config.log(string.format("Will add %d elements to %d", #lines, #AzyUi._source_lines))
     local all_lines = {}
 
     for i = 1,#lines do
@@ -238,7 +196,7 @@ function AzyUi.add(lines: {AzyElement|string}): boolean
       end
 
       if AzyUi._search_text_cache[toel.content.search_text] then
-        log(string.format("Collision in search text cache: '%s'", toel.content.search_text))
+        config.log(string.format("Collision in search text cache: '%s'", toel.content.search_text))
       else
         AzyUi._search_text_cache[toel.content.search_text] = toel
         all_lines[#all_lines + 1] = toel.content.search_text
@@ -246,7 +204,7 @@ function AzyUi.add(lines: {AzyElement|string}): boolean
       end
     end
 
-    time_this("Filter incremental", function()
+    config.time_this("Filter incremental", function()
       AzyUi._choices:add_incremental(all_lines)
     end)
 
@@ -263,7 +221,7 @@ function AzyUi.confirm(options: AzyCbModifiers)
   AzyUi._close()
   local selected = AzyUi._selected()
   if selected then
-    if DEBUG then
+    if config.cfg.debug then
       AzyUi._callback(selected.content, options or {})
     else
       pcall(AzyUi._callback, selected.content, options or {})
@@ -303,7 +261,7 @@ function AzyUi._close()
     vim.api.nvim_win_close(AzyUi._output_win, true)
   end
 
-  if config.preview then
+  if config.cfg.preview then
     for _, bnr in pairs(AzyUi._preview_buffer_cache) do
       if vim.api.nvim_buf_is_valid(bnr) then
         vim.api.nvim_buf_delete(bnr, { force = true })
@@ -322,7 +280,7 @@ function AzyUi.exit()
 end
 
 function AzyUi._destroy()
-  log "Destroying"
+  config.log "Destroying"
   AzyUi._search_text_cache = {}
   AzyUi._source_lines = {}
   AzyUi._choices = nil
@@ -338,9 +296,9 @@ function AzyUi._update_ui()
     return
   end
 
-  time_this(string.format("Update for %d elements", #AzyUi._source_lines), function()
+  config.time_this(string.format("Update for %d elements", #AzyUi._source_lines), function()
     if #iline > 0 then
-      time_this("Filter", function()
+      config.time_this("Filter", function()
         AzyUi._choices:search(iline)
       end)
     end
@@ -353,7 +311,7 @@ end
 
 local set_extmark = vim.api.nvim_buf_set_extmark
 function AzyUi._redraw()
-  time_this("Redraw", function()
+  config.time_this("Redraw", function()
     -- Compute the range of items to draw
     -- Direct translation of fzy
     local start: integer = 1
@@ -393,7 +351,7 @@ function AzyUi._redraw()
 
     -- Setting the cursor to the appropriate line has to be done later, after the lines are updated
     local hl_offset: integer = 2
-    time_this("Build lines", function()
+    config.time_this("Build lines", function()
       for_each_displayed_line(function(line: AzyLine)
         local preff: string
         if line == selected then
@@ -405,11 +363,11 @@ function AzyUi._redraw()
       end)
     end)
 
-    time_this("Set lines", function()
+    config.time_this("Set lines", function()
       vim.api.nvim_buf_set_lines(AzyUi._output_buf, 0, -1, true, lines_to_draw)
     end)
 
-    time_this("Highlight lines", function()
+    config.time_this("Highlight lines", function()
       vim.api.nvim_buf_clear_namespace(AzyUi._output_buf, hl_ns, 0, -1)
       for_each_displayed_line(function(line: AzyLine, row: integer)
         local score, positions = fzy.match(AzyUi._prompt, line.content.search_text)
@@ -417,7 +375,7 @@ function AzyUi._redraw()
           error "Inconsistent state"
         end
 
-        if DEBUG and AzyUi._prompt and #AzyUi._prompt > 0 then
+        if config.cfg.debug and AzyUi._prompt and #AzyUi._prompt > 0 then
           set_extmark(AzyUi._output_buf, hl_ns, row - 1, 0, {
             virt_text = { { tostring(score), config.HL_DIM } },
           })
@@ -447,10 +405,10 @@ function AzyUi._redraw()
       end)
     end)
 
-    if config.preview then
-      time_this("Update preview", function()
+    if config.cfg.preview then
+      config.time_this("Update preview", function()
         if not selected then
-          log "Nothing selected"
+          config.log "Nothing selected"
           vim.api.nvim_win_set_buf(AzyUi._preview_win, create_throwaway())
         else
           local cache_buf = AzyUi._preview_buffer_cache[selected]
