@@ -47,7 +47,7 @@ else
    end
 end
 
-local AzyLine = {}
+
 
 
 

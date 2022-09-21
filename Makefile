@@ -16,8 +16,8 @@ test:
 lib:
 	make -C lua/fzy/
 
-nix-build:
-	nix-shell --pure --run "make build"
+nix-ensure:
+	nix-shell --pure --run "make ensure"
 
 nix-test: nix-build
 	nix-shell --pure --run "./run_tests.sh"
