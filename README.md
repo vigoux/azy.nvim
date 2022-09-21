@@ -21,7 +21,7 @@ or suggestion !
 ## Installation
 
 _WARNING: this plugin will clash with
-[nvim-fzy](https://github.com/mfussenegger/nvim-fzy) so you need to
+[nvim-fzy](https://github.com/mfussenegger/nvim-fzy) and [guihua](https://github.com/ray-x/guihua.lua) so you need to
 only have one of these installed at a time_
 
 As this plugin requires the compilation of a small C library, you will
