@@ -9,7 +9,13 @@ local HEIGHT = 20
 
 
 
+
+
+
+
+
 local AzyUi = {}
+
 
 
 
@@ -78,8 +84,9 @@ function AzyUi.create(content, callback)
    vim.api.nvim_create_augroup(AUGROUP_NAME, { clear = true })
    AzyUi._callback = callback or function(i) vim.notify(i.search_text) end
    AzyUi._prompt = ""
+   AzyUi._previous_bufs = vim.api.nvim_list_bufs()
 
-   AzyUi._preview_buffer_cache = {}
+   AzyUi._preview_cache = {}
 
    AzyUi._search_text_cache = {}
    AzyUi._source_lines = {}
@@ -262,9 +269,9 @@ function AzyUi._close()
    end
 
    if config.cfg.preview then
-      for _, bnr in pairs(AzyUi._preview_buffer_cache) do
-         if vim.api.nvim_buf_is_valid(bnr) then
-            vim.api.nvim_buf_delete(bnr, { force = true })
+      for _, entry in pairs(AzyUi._preview_cache) do
+         if vim.api.nvim_buf_is_valid(entry.bufnr) and not vim.tbl_contains(AzyUi._previous_bufs, entry.bufnr) then
+            vim.api.nvim_buf_delete(entry.bufnr, { force = true })
          end
       end
 
@@ -411,16 +418,18 @@ function AzyUi._redraw()
                config.log("Nothing selected")
                vim.api.nvim_win_set_buf(AzyUi._preview_win, create_throwaway())
             else
-               local cache_buf = AzyUi._preview_buffer_cache[selected]
-               if cache_buf then
-                  vim.api.nvim_win_call(AzyUi._preview_win, function()
-                     AzyUi._callback(selected.content, { preview = cache_buf })
-                  end)
+               local cache_entry = AzyUi._preview_cache[selected]
+               if cache_entry then
+                  vim.api.nvim_win_set_buf(AzyUi._preview_win, cache_entry.bufnr)
+                  vim.api.nvim_win_set_cursor(AzyUi._preview_win, cache_entry.cursor)
                else
                   vim.api.nvim_win_call(AzyUi._preview_win, function()
                      AzyUi._callback(selected.content, { preview = true })
                   end)
-                  AzyUi._preview_buffer_cache[selected] = vim.api.nvim_win_get_buf(AzyUi._preview_win)
+                  AzyUi._preview_cache[selected] = {
+                     bufnr = vim.api.nvim_win_get_buf(AzyUi._preview_win),
+                     cursor = vim.api.nvim_win_get_cursor(AzyUi._preview_win),
+                  }
                end
             end
 
