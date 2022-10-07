@@ -46,8 +46,18 @@ function. Note though that this is not required for this plugin to
 work, as it only configures the features of `azy`:
 ```lua
 require'azy'.setup {
-  preview = false -- Whether to preview selected items on the fly (this is an unstable feature, feedback appreciated)
-  debug = false -- Enable debug output and timings in the UI
+  preview = false, -- Whether to preview selected items on the fly (this is an unstable feature, feedback appreciated)
+  debug = false, -- Enable debug output and timings in the UI
+  mappings = { -- Configure the mappings
+    ["<Up>"] = "prev", -- Select the previous item
+    ["<Down>"] = "next", -- Select the next item
+    ["<CR>"] = "confirm", -- Confirm the selection, open the selected item
+    ["<C-V>"] = "confirm_vsplit", -- Same as confirm but in a vertical split
+    ["<C-H>"] = "confirm_split", -- Same as confirm but in a horizontal split
+
+    -- Normal mode mapping are not configurable:
+    -- <ESC>: exits without confirm
+  },
 }
 ```
 
@@ -63,16 +73,6 @@ These builtin functions return a function suitable for
 Examples of how to use the functions below can be found
 [here](https://github.com/vigoux/azy.nvim/wiki/Examples). This is
 editable by everyone so feel free to add your lines there.
-
-## Controls
-
-In an `azy` UI, you can do the following:
-- `<Down>` moves the cursor to the next
-- `<Up>` moves the cursor to the previous item
-- `<CR>` confirms the selection
-- `<C-V>` confirm but open in a vertical split
-- `<C-H>` confirm but open in a split
-- `<ESC>` (only in normal mode) exists without confirm
 
 ## Builtins
 

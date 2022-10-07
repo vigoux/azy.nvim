@@ -1,8 +1,8 @@
-nix-build:
-	nix-shell --pure --run "make build"
-
 build: lib
 	tl build
+
+nix-build:
+	nix-shell --pure --run "make build"
 
 check:
 	tl check teal/**/*.tl

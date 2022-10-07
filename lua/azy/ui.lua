@@ -55,6 +55,8 @@ local AzyUi = {}
 
 
 
+
+
 local function create_throwaway()
    local buf = vim.api.nvim_create_buf(false, true)
    vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
@@ -174,11 +176,10 @@ function AzyUi.create(content, callback)
    })
 
 
-   vim.keymap.set({ "n", "i" }, "<Down>", AzyUi.next, { buffer = AzyUi._input_buf })
-   vim.keymap.set({ "n", "i" }, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
-   vim.keymap.set({ "n", "i" }, "<CR>", function() AzyUi.confirm({}) end, { buffer = AzyUi._input_buf })
-   vim.keymap.set({ "n", "i" }, "<C-V>", function() AzyUi.confirm({ vsplit = true }) end, { buffer = AzyUi._input_buf })
-   vim.keymap.set({ "n", "i" }, "<C-H>", function() AzyUi.confirm({ split = true }) end, { buffer = AzyUi._input_buf })
+   for mapping, fname in pairs(config.cfg.mappings) do
+      vim.keymap.set({ "n", "i" }, mapping,
+      (AzyUi)[fname], { buffer = AzyUi._input_buf })
+   end
    vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
    AzyUi._selected_index = 1
@@ -235,6 +236,14 @@ function AzyUi.confirm(options)
       end
    end
    AzyUi._destroy()
+end
+
+function AzyUi.confirm_vsplit()
+   AzyUi.confirm({ vsplit = true })
+end
+
+function AzyUi.confirm_split()
+   AzyUi.confirm({ split = true })
 end
 
 function AzyUi._selected()

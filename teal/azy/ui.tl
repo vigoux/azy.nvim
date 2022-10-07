@@ -23,6 +23,8 @@ local record AzyUi
   prev: function()
   exit: function()
   confirm: function(AzyCbModifiers)
+  confirm_vsplit: function()
+  confirm_split: function()
 
   -- Private stuff
   _close: function()
@@ -174,11 +176,10 @@ function AzyUi.create(content: {AzyElement|string}, callback: function(AzyElemen
   })
 
   -- Mappings
-  vim.keymap.set({"n", "i"}, "<Down>", AzyUi.next, { buffer = AzyUi._input_buf })
-  vim.keymap.set({"n", "i"}, "<Up>", AzyUi.prev, { buffer = AzyUi._input_buf })
-  vim.keymap.set({"n", "i"}, "<CR>", function() AzyUi.confirm {} end, { buffer = AzyUi._input_buf })
-  vim.keymap.set({"n", "i"}, "<C-V>", function() AzyUi.confirm { vsplit = true } end, { buffer = AzyUi._input_buf })
-  vim.keymap.set({"n", "i"}, "<C-H>", function() AzyUi.confirm { split = true } end, { buffer = AzyUi._input_buf })
+  for mapping,fname in pairs(config.cfg.mappings) do
+    vim.keymap.set({"n", "i"}, mapping,
+      (AzyUi as {string:function()})[fname], { buffer = AzyUi._input_buf })
+  end
   vim.keymap.set("n", "<ESC>", AzyUi.exit, { buffer = AzyUi._input_buf })
 
   AzyUi._selected_index = 1
@@ -235,6 +236,14 @@ function AzyUi.confirm(options: AzyCbModifiers)
     end
   end
   AzyUi._destroy()
+end
+
+function AzyUi.confirm_vsplit()
+  AzyUi.confirm { vsplit = true }
+end
+
+function AzyUi.confirm_split()
+  AzyUi.confirm { split = true }
 end
 
 function AzyUi._selected(): AzyLine, integer

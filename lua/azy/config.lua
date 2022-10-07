@@ -14,9 +14,17 @@ local ConfigM = {Config = {}, }
 
 
 
+
 ConfigM.cfg = {
    preview = false,
    debug = false,
+   mappings = {
+      ["<Up>"] = "prev",
+      ["<Down>"] = "next",
+      ["<CR>"] = "confirm",
+      ["<C-V>"] = "confirm_vsplit",
+      ["<C-H>"] = "confirm_split",
+   },
 }
 
 local function hl_group(name, options)
