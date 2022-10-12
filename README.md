@@ -1,4 +1,6 @@
-![azy](https://user-images.githubusercontent.com/39092278/190636426-0e94f07f-94a2-4226-90d8-425cfa0c38eb.gif)
+__THIS PLUGING IS NOW HOSTED ON
+[sr.ht](https://sr.ht/~vigoux/azy.nvim/). Development will continue
+there__
 
 __WARNING: This plugin is meant to be used with neovim 0.8__
 
