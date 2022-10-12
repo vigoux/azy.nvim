@@ -1,6 +1,4 @@
-__THIS PLUGING IS NOW HOSTED ON
-[sr.ht](https://sr.ht/~vigoux/azy.nvim/). Development will continue
-there__
+# __THIS PLUGING IS NOW HOSTED ON [sr.ht](https://sr.ht/~vigoux/azy.nvim/). Development will continue there__
 
 __WARNING: This plugin is meant to be used with neovim 0.8__
 
